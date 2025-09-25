@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport"
+        content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
+  <title>Tank Mini Game (PWA)</title>
+
+  <!-- PWA: Manifest & Icons -->
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0b1020" />
+
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f172a;
+      --border:#334155;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --btn:#1f2937;
+      --btn-border:#374151;
+      --cyan:#22d3ee;
+      --cyan-2:#67e8f9;
+      --enemy:#f97316;
+      --bullet:#a78bfa;
+      --accent:#a78bfa;
+      --good:#10b981;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+    }
+    html, body {
+      margin: 0; height: 100%;
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      user-select: none; -webkit-user-select: none;
+      touch-action: none; /* 防止误滚动 */
+    }
+    #wrap {
+      display: grid; place-items: center;
+      height: 100dvh; gap: 10px; padding: 12px;
+      box-sizing: border-box;
+    }
+    .bar {
+      width: min(96vw, 1000px);
+      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      font-size: 14px; opacity: 0.95;
+    }
+    .spacer { flex: 1; }
+    .btn {
+      padding: 6px 10px; border-radius: 10px;
+      background: var(--btn); color: var(--text);
+      border: 1px solid var(--btn-border); cursor: pointer;
+    }
+    .btn:active { transform: translateY(1px); }
+    .toggle { display:inline-flex; align-items:center; gap:6px; }
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      padding: 2px 6px; border-radius: 6px; border:1px solid #475569; background:#111827;
+    }
+    canvas {
+      width: min(96vw, 1000px);
+      height: min(70vh, 560px);
+      image-rendering: pixelated;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+      touch-action: none;
+    }
+
+    /* 触屏虚拟控件 */
+    .touch-layer{ position: fixed; inset: 0; pointer-events: none; }
+    .pad, .fire, .pause-fab {
+      position: absolute; pointer-events: auto; -webkit-tap-highlight-color: transparent;
+    }
+    .pad {
+      left: 12px; bottom: 12px; width: 180px; height: 180px;
+      display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr);
+      gap: 8px; opacity: 0.95;
+    }
+    .pad button{
+      background: rgba(31,41,55,0.92); color: var(--text);
+      border: 1px solid var(--btn-border); border-radius: 12px; font-size: 18px;
+      touch-action: none;
+    }
+    .pad .empty{ background: transparent; border:0; }
+    .fire{
+      right: 16px; bottom: 28px; width: 92px; height: 92px; border-radius: 50%;
+      background: rgba(167,139,250,0.9); border:2px solid rgba(255,255,255,0.2);
+      font-weight: 700; display: grid; place-items: center;
+    }
+    .pause-fab{
+      right: 16px; bottom: 140px; width:56px; height:56px; border-radius:50%;
+      background: rgba(31,41,55,0.92); border:1px solid var(--btn-border);
+      display:grid; place-items:center; font-size:20px;
+    }
+    @media (hover:hover) and (pointer:fine){ .touch-layer{ display:none; } }
+
+    /* 设置抽屉 */
+    .drawer{
+      position: fixed; right: 12px; top: env(safe-area-inset-top, 12px);
+      width: min(92vw, 360px); max-height: 80vh; overflow:auto;
+      padding: 12px; border-radius: 12px;
+      background: rgba(15,23,42,0.96); border:1px solid var(--border);
+      backdrop-filter: blur(6px); display: none;
+    }
+    .drawer h3{ margin: 4px 0 8px; }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; }
+    .range{ width: 180px; }
+    .hint{ color: var(--muted); font-size: 12px; }
+
+    /* 顶部状态条 */
+    .pill{
+      padding: 6px 10px; border-radius: 999px; background: #111827; border:1px solid #374151;
+    }
+    .ok{ color: var(--good); } .warn{ color: var(--warn); } .bad{ color: var(--bad); }
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <!-- 顶部工具栏 -->
+    <div class="bar">
+      <span class="pill" id="netStatus">⏻ Offline-ready</span>
+      <span class="pill" id="fpsPill">FPS: --</span>
+      <span id="status"></span>
+      <span class="spacer"></span>
+      <button class="btn" id="btnInstall" style="display:none;">安装到主屏</button>
+      <button class="btn" id="btnSettings">设置</button>
+      <button class="btn" id="btnPause">暂停</button>
+      <button class="btn" id="btnResume" style="display:none;">继续</button>
+    </div>
+
+    <!-- 画布 -->
+    <canvas id="game" width="960" height="560" aria-label="Tank game"></canvas>
+
+    <!-- 底部提示 -->
+    <div class="bar" style="opacity:0.9;">
+      <span>桌面调试：<span class="kbd">W/A/S/D</span> 或 <span class="kbd">↑/←/↓/→</span> 移动，<span class="kbd">Space</span> 射击</span>
+      <span class="spacer"></span>
+      <span id="bestPill" class="pill">Best: --</span>
+      <span id="scorePill" class="pill">Score: 0</span>
+      <span id="hpPill" class="pill">HP: 5</span>
+      <span id="enemyPill" class="pill">Enemies: --</span>
+    </div>
+  </div>
+
+  <!-- 触屏层：D-Pad + 火力 + 悬浮暂停 -->
+  <div class="touch-layer">
+    <div class="pad" aria-label="D-pad">
+      <button class="empty" disabled></button>
+      <button data-k="up">▲</button>
+      <button class="empty" disabled></button>
+      <button data-k="left">◄</button>
+      <button class="empty" disabled></button>
+      <button data-k="right">►</button>
+      <button class="empty" disabled></button>
+      <button data-k="down">▼</button>
+      <button class="empty" disabled></button>
+    </div>
+    <button class="fire" id="fireBtn" aria-label="Fire">FIRE</button>
+    <button class="pause-fab" id="pauseFab" aria-label="Pause/Resume">II</button>
+  </div>
+
+  <!-- 设置抽屉 -->
+  <div class="drawer" id="drawer">
+    <h3>设置</h3>
+    <div class="row">
+      <span>难度（敌人速度倍率）</span>
+      <input id="rangeDifficulty" class="range" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
+    </div>
+    <div class="row">
+      <span>音效</span>
+      <label class="toggle"><input type="checkbox" id="chkSfx" checked> 启用</label>
+    </div>
+    <div class="row">
+      <span>震动（移动端）</span>
+      <label class="toggle"><input type="checkbox" id="chkVibrate" checked> 启用</label>
+    </div>
+    <div class="row">
+      <span>全屏（支持的浏览器）</span>
+      <button class="btn" id="btnFullscreen">进入/退出</button>
+    </div>
+    <div class="row">
+      <span>重置最高分</span>
+      <button class="btn" id="btnResetBest">清除</button>
+    </div>
+    <div class="hint">提示：iOS 请用 Safari 打开并 “添加到主屏幕”，体验接近原生 App。</div>
+  </div>
+
+  <!-- 主脚本 -->
+  <script src="./app.js"></script>
+</body>
+</html>
