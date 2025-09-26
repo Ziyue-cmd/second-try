@@ -10,7 +10,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+        navigator.serviceWorker.register('./service-worker.js', { scope: './' }).catch(console.error);
       });
     }
   </script>
@@ -21,71 +21,103 @@
       --accent:#22d3ee; --danger:#f43f5e; --ok:#10b981; --warn:#f59e0b; --border:#293241;
     }
     *{box-sizing:border-box}
-    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);
-      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
-    .wrap{max-width:1100px;margin:0 auto;padding:12px;display:grid;gap:12px}
+    html,body{
+      height:100%;margin:0;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    }
+    .wrap{max-width:1100px;margin:0 auto;padding:10px;display:grid;gap:10px}
 
-    .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .badge{padding:4px 8px;border:1px solid var(--border);border-radius:10px;background:#0f172a}
+    /* 顶部信息条（精简） */
+    .topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .badge{padding:3px 8px;border:1px solid var(--border);border-radius:10px;background:#0f172a;font-size:13px}
     .pot{font-weight:700;color:var(--accent)}
     .turn{color:var(--warn);font-weight:700}
 
+    /* 牌桌与座位（更紧凑） */
     .table{
-      position:relative;height:600px;border:1px solid var(--border);border-radius:16px;
+      position:relative;height:540px;border:1px solid var(--border);border-radius:16px;
       background: radial-gradient(ellipse at center,#0f2a2a 0%, var(--felt) 60%, #0b1328 100%);
       overflow:hidden;
     }
     .seats{position:absolute; inset:0;}
-    .center-info{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;color:#cbd5e1;font-size:14px}
-    .center-info h2{margin:.2em 0 .4em; font-size:20px}
 
-    .seat{position:absolute;width:260px;max-width:38vw;border:1px solid var(--border);
-      border-radius:12px;background:var(--panel);padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.25)}
-    .seat h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
-    .chips{font-weight:700;color:var(--ok)} .folded{opacity:.55;filter:grayscale(.2)} .acting{outline:2px solid var(--warn)}
-    .seat.top{left:50%;top:8px;transform:translateX(-50%)} .seat.right{right:8px;top:50%;transform:translateY(-50%)}
-    .seat.bottom{left:50%;bottom:8px;transform:translateX(-50%)} .seat.left{left:8px;top:50%;transform:translateY(-50%)}
+    /* 中央只显示底池数额 */
+    .center-pot{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      background:rgba(15,23,42,.8); border:1px solid var(--border); border-radius:12px;
+      padding:6px 12px; font-size:14px; color:#e5e7eb; box-shadow:0 6px 16px rgba(0,0,0,.25);
+    }
 
-    .cards{display:flex;gap:8px;margin:6px 0 2px}
-    .card{width:52px;height:72px;border-radius:8px;border:1px solid #374151;display:grid;place-items:center;
-      background:#0b1328;font-weight:700}
+    /* 座位面板缩小 */
+    .seat{
+      position:absolute;width:200px;max-width:36vw;border:1px solid var(--border);
+      border-radius:10px;background:var(--panel);padding:6px;box-shadow:0 6px 16px rgba(0,0,0,.2)
+    }
+    .seat h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:6px}
+    .chips{font-weight:700;color:var(--ok)} 
+    .folded{opacity:.55;filter:grayscale(.2)} 
+    .acting{outline:2px solid var(--warn)}
+    .seat.top{left:50%;top:6px;transform:translateX(-50%)} 
+    .seat.right{right:6px;top:50%;transform:translateY(-50%)}
+    .seat.bottom{left:50%;bottom:6px;transform:translateX(-50%)} 
+    .seat.left{left:6px;top:50%;transform:translateY(-50%)}
+
+    /* 扑克牌缩小 */
+    .cards{display:flex;gap:6px;margin:4px 0 2px}
+    .card{
+      width:44px;height:64px;border-radius:8px;border:1px solid #374151;display:grid;place-items:center;
+      background:#0b1328;font-weight:700;font-size:14px
+    }
     .card.face{background:#f8fafc;color:#0b1020;border-color:#cbd5e1}
+    .card small{font-size:11px}
     .suit-red{color:#ef4444}
 
-    .actions{margin-top:6px;display:flex;gap:8px;flex-wrap:wrap}
-    button{padding:8px 12px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer}
-    button.primary{background:#1d4ed8;border-color:#1e40af} button.danger{background:#991b1b;border-color:#7f1d1d}
+    /* 操作按钮更紧凑 */
+    .actions{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
+    button{
+      padding:6px 10px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer;font-size:13px
+    }
+    button.primary{background:#1d4ed8;border-color:#1e40af} 
+    button.danger{background:#991b1b;border-color:#7f1d1d}
     button:disabled{opacity:.5;cursor:not-allowed}
 
-    .sidebar{display:grid;gap:12px}
-    .panel{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px}
-    .panel h4{margin:.2em 0 .6em}
-    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding:4px 0}
-    .log{height:180px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:13px;line-height:1.5}
+    /* 侧栏（保留统计与日志） */
+    .sidebar{display:grid;gap:10px}
+    .panel{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:10px}
+    .panel h4{margin:.2em 0 .6em;font-size:14px}
+    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding:4px 0;font-size:13px}
+    .log{height:160px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:12px;line-height:1.5}
     .log p{margin:.2em 0;color:#c0cad6}
-    @media (max-width:980px){.wrap{max-width:100%;padding:8px}.table{height:520px}.seat{width:220px}}
+
+    @media (max-width:980px){
+      .wrap{max-width:100%;padding:8px}
+      .table{height:500px}
+      .seat{width:180px}
+      .card{width:40px;height:58px}
+    }
+    @media (max-width:720px){
+      .seat{width:170px}
+      .card{width:36px;height:54px;font-size:13px}
+      .card small{font-size:10px}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
-      <span class="badge">底注(Ante): <b id="ante">10</b></span>
+      <span class="badge">底注: <b id="ante">10</b></span>
       <span class="badge">本轮注额: <b id="roundBet">10</b></span>
       <span class="badge">注额上限: <b id="maxStake">40</b></span>
       <span class="badge">每轮最多加注: <b id="maxRaises">3</b></span>
       <span class="badge">最大轮次: <b id="maxRounds">20</b></span>
-      <span class="badge">底池 Pot: <span class="pot" id="pot">0</span></span>
       <span class="badge">轮到: <span id="turnName" class="turn">-</span></span>
       <span class="badge">当前轮次: <b id="roundNow">1</b></span>
     </div>
 
     <div class="table">
       <div class="seats" id="seats"></div>
-      <div class="center-info">
-        <h2>扎金花</h2>
-        <div>本轮注额从 <b>10</b> 起，跟注补至该注额；加注使本轮注额翻倍（至多 40）。</div>
-        <div>当所有未弃牌者都补到本轮注额 → 进入下一轮（本轮注额重置为 10）。</div>
-      </div>
+      <!-- 中央仅显示底池 -->
+      <div class="center-pot">底池（Pot）：<span class="pot" id="pot">0</span></div>
     </div>
 
     <div class="sidebar">
@@ -136,17 +168,13 @@
       return{cat:1,scoreVec:ranks,name:'高牌'};
     }
     const compareHands=(a,b)=> a.cat!==b.cat ? a.cat-b.cat :
-      (()=>{
-        for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){
-          const av=a.scoreVec[i]??0,bv=b.scoreVec[i]??0; if(av!==bv) return av-bv;
-        } return 0;
-      })();
+      (()=>{for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){const av=a.scoreVec[i]??0,bv=b.scoreVec[i]??0; if(av!==bv) return av-bv;} return 0;})();
 
     /* ---------- 配置 & 状态 ---------- */
     const cfg = {
       ante: 10,
-      startStake: 10,   // 本轮注额起点
-      maxStake: 40,     // 本轮注额上限
+      startStake: 10,
+      maxStake: 40,
       maxRaisesPerRound: 3,
       maxRounds: 20,
       startChips: 500
@@ -157,7 +185,7 @@
       pot: 0,
       roundIndex: 1,
       raisesThisRound: 0,
-      roundBetSize: cfg.startStake,  // 本轮注额
+      roundBetSize: cfg.startStake,
       turnIndex: 0,
       inHand: false,
       showdown: false
@@ -176,10 +204,10 @@
     /* ---------- 初始化 ---------- */
     function setupPlayers(){
       state.players=[
-        {id:0,name:'你(玩家)',pos:'bottom',isHuman:true, chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
-        {id:1,name:'机器人A',pos:'left',  isHuman:false,chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
-        {id:2,name:'机器人B',pos:'top',   isHuman:false,chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
-        {id:3,name:'机器人C',pos:'right', isHuman:false,chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
+        {id:0,name:'你(玩家)',pos:'bottom',isHuman:true,  chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
+        {id:1,name:'机器人A',pos:'left',  isHuman:false, chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
+        {id:2,name:'机器人B',pos:'top',   isHuman:false, chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
+        {id:3,name:'机器人C',pos:'right', isHuman:false, chips:cfg.startChips,hand:[],folded:false,betThisRound:0,totalBet:0},
       ];
     }
 
@@ -188,6 +216,7 @@
       state.roundIndex=1; state.raisesThisRound=0; state.roundBetSize=cfg.startStake; state.turnIndex=0;
       state.deck=shuffle(createDeck());
       for(const p of state.players){ p.hand=[state.deck.pop(),state.deck.pop(),state.deck.pop()]; p.folded=false; p.betThisRound=0; p.totalBet=0; }
+      // 收取底注
       for(const p of alivePlayers()){ const ante=Math.min(cfg.ante,p.chips); p.chips-=ante; p.totalBet+=ante; state.pot+=ante; }
       log('—— 新一局开始，收取底注 ——');
       render(); maybeAutoTurn();
@@ -205,8 +234,8 @@
         <div class="seat ${p.pos} ${p.folded?'folded':''} ${acting?'acting':''}">
           <h3>${p.name} <span class="chips">￥${p.chips}</span> ${acting?'<span class="turn">（行动）</span>':''}</h3>
           <div class="cards">${cards}</div>
-          <div style="font-size:12px;color:#9fb0c1;display:flex;gap:10px">
-            <span>本轮已下：￥${p.betThisRound}</span><span>总投入：￥${p.totalBet}</span>
+          <div style="font-size:12px;color:#9fb0c1;display:flex;gap:8px">
+            <span>本轮已下：￥${p.betThisRound}</span>
           </div>
           ${eva}
           ${p.isHuman?humanActionsHtml():''}
@@ -228,7 +257,8 @@
       statAliveEl.textContent=alivePlayers().length; statRoundEl.textContent=state.roundIndex; roundNowEl.textContent=state.roundIndex;
       meChipsEl.textContent=state.players[0].chips; meBetEl.textContent=state.players[0].betThisRound;
 
-      seatsEl.innerHTML=''; state.players.forEach((p,i)=>seatsEl.insertAdjacentHTML('beforeend',seatHtml(p, state.inHand && i===state.turnIndex && !state.showdown && !p.folded)));
+      seatsEl.innerHTML=''; 
+      state.players.forEach((p,i)=>seatsEl.insertAdjacentHTML('beforeend',seatHtml(p, state.inHand && i===state.turnIndex && !state.showdown && !p.folded)));
 
       const myTurn = state.inHand && !state.showdown && !state.players[0].folded && state.turnIndex===0;
       const btnFold=document.getElementById('btnFold'), btnCall=document.getElementById('btnCall'),
@@ -244,7 +274,7 @@
     /* ---------- 行动 & 结算 ---------- */
     function payToPot(p,amount){
       const pay=Math.max(0,Math.min(amount,p.chips));
-      p.chips-=pay; p.betThisRound+=pay; p.totalBet+=pay; state.pot+=pay; return pay;
+      p.chips-=pay; p.betThisRound+=pay; state.pot+=pay; return pay;
     }
 
     function playerFold(){ const me=state.players[0]; me.folded=true; log('你选择：弃牌'); advanceTurn(); }
@@ -258,13 +288,10 @@
     function playerRaise(){
       const me=state.players[0];
       if(state.roundBetSize>=cfg.maxStake || state.raisesThisRound>=cfg.maxRaisesPerRound){ return playerCall(); }
-      // 先补到当前本轮注额
       const needCall=Math.max(0, state.roundBetSize - me.betThisRound);
       const paidCall=payToPot(me,needCall);
-      // 翻倍本轮注额（上限 40）
       const newSize=Math.min(state.roundBetSize*2, cfg.maxStake);
       state.roundBetSize=newSize; state.raisesThisRound+=1;
-      // 再补差额到新的本轮注额
       const extra=newSize - me.betThisRound;
       const paidRaise=payToPot(me,extra);
       log(`你：先跟 ￥${paidCall}，再加注到本轮注额 ￥${newSize}，额外支付 ￥${paidRaise}`);
@@ -274,18 +301,13 @@
     function advanceTurn(){
       const alive=alivePlayers();
       if(alive.length===1) return winByFold(alive[0]);
-
-      // 一轮是否完成：所有未弃牌者都已补到本轮注额
       const allMatched=alive.every(p=>p.betThisRound===state.roundBetSize);
       if(allMatched){
         if(state.roundIndex>=cfg.maxRounds) return showdown('达到最大轮次，强制开牌');
-        // 下一轮：注额重置为 10，已下清零
         state.roundIndex+=1; state.raisesThisRound=0; state.roundBetSize=cfg.startStake;
         for(const p of alive) p.betThisRound=0;
         log(`—— 进入第 ${state.roundIndex} 轮（本轮注额重置为 ￥${state.roundBetSize}）——`);
       }
-
-      // 顺时针至下一位
       const n=state.players.length;
       for(let step=1; step<=n; step++){
         const idx=(state.turnIndex+step)%n; const cand=state.players[idx];
@@ -301,23 +323,16 @@
     }
     function botAct(p){
       if(!state.inHand||state.showdown||p.folded) return;
-
-      // 随轮次增长的“主动开牌”概率
       const base=Math.min(0.05+0.03*(state.roundIndex-1),0.5);
       if(Math.random()<base) return showdown(`${p.name} 发起开牌`);
-
-      // 决策：跟/加/弃
       const need=Math.max(0, state.roundBetSize - p.betThisRound);
       const S=botStrength(p), STRONG=500, MEDIUM=250;
-      const canRaise=(state.roundBetSize<cfg.maxStake) && (state.raisesThisRound<cfg.maxRaisesPerRound) && (p.chips>=need + (Math.min(state.roundBetSize*2,cfg.maxStake)-p.betThisRound));
-
+      const canRaise=(state.roundBetSize<cfg.maxStake) && (state.raisesThisRound<cfg.maxRaisesPerRound) &&
+                      (p.chips>=need + (Math.min(state.roundBetSize*2,cfg.maxStake)-p.betThisRound));
       if(S>=STRONG && canRaise){
-        // 跟到当前注额
         payToPot(p,need);
-        // 翻倍注额（至多 40）
         state.roundBetSize=Math.min(state.roundBetSize*2,cfg.maxStake);
         state.raisesThisRound+=1;
-        // 再补到新的注额
         payToPot(p, state.roundBetSize - p.betThisRound);
         log(`${p.name}：加注到本轮注额 ￥${state.roundBetSize}`);
       }else if(S>=MEDIUM || need===0){
@@ -358,6 +373,8 @@
   </script>
 </body>
 </html>
+
+
 
 
 
