@@ -2,196 +2,554 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport"
-        content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no" />
-  <title>Tank Mini Game (PWA)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>扎金花 · 简易对战（1人+3机器人）</title>
 
-  <!-- PWA: Manifest & Icons -->
+  <!-- 可选：如果你已有 PWA 文件，保留以下两行；否则可以先注释掉 -->
   <link rel="manifest" href="./manifest.json" />
-  <link rel="icon" href="./icons/icon-192.png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#0b1020" />
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').catch(console.error);
+      });
+    }
+  </script>
 
   <style>
     :root{
       --bg:#0b1020;
-      --panel:#0f172a;
-      --border:#334155;
-      --text:#e5e7eb;
+      --panel:#111827;
       --muted:#9ca3af;
-      --btn:#1f2937;
-      --btn-border:#374151;
-      --cyan:#22d3ee;
-      --cyan-2:#67e8f9;
-      --enemy:#f97316;
-      --bullet:#a78bfa;
-      --accent:#a78bfa;
-      --good:#10b981;
+      --text:#e5e7eb;
+      --accent:#22d3ee;
+      --danger:#f43f5e;
+      --ok:#10b981;
       --warn:#f59e0b;
-      --bad:#ef4444;
+      --border:#293241;
     }
-    html, body {
-      margin: 0; height: 100%;
-      background: var(--bg); color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-      user-select: none; -webkit-user-select: none;
-      touch-action: none; /* 防止误滚动 */
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px}
+    .topbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .badge{padding:4px 8px;border:1px solid var(--border);border-radius:10px;background:#0f172a}
+    .row{display:grid;grid-template-columns:1fr 330px;gap:16px}
+    .table{background:linear-gradient(180deg,#0f172a,#0b1328);border:1px solid var(--border);border-radius:14px;padding:12px;}
+    .players{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .panel{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px}
+    .panel h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
+    .chips{font-weight:700;color:var(--ok)}
+    .pot{font-weight:700;color:var(--accent)}
+    .cards{display:flex;gap:8px;margin:6px 0 2px}
+    .card{
+      width:48px;height:68px;border-radius:8px;border:1px solid #374151;display:grid;place-items:center;
+      background:#0b1328;font-weight:700;
     }
-    #wrap {
-      display: grid; place-items: center;
-      height: 100dvh; gap: 10px; padding: 12px;
-      box-sizing: border-box;
+    .card.face{background:#f8fafc;color:#0b1020;border-color:#cbd5e1}
+    .suit-red{color:#ef4444}
+    .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    button{
+      padding:8px 12px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer;
     }
-    .bar {
-      width: min(96vw, 1000px);
-      display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
-      font-size: 14px; opacity: 0.95;
-    }
-    .spacer { flex: 1; }
-    .btn {
-      padding: 6px 10px; border-radius: 10px;
-      background: var(--btn); color: var(--text);
-      border: 1px solid var(--btn-border); cursor: pointer;
-    }
-    .btn:active { transform: translateY(1px); }
-    .toggle { display:inline-flex; align-items:center; gap:6px; }
-    .kbd {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      padding: 2px 6px; border-radius: 6px; border:1px solid #475569; background:#111827;
-    }
-    canvas {
-      width: min(96vw, 1000px);
-      height: min(70vh, 560px);
-      image-rendering: pixelated;
-      border: 2px solid var(--border);
-      border-radius: 12px;
-      background: var(--panel);
-      touch-action: none;
-    }
-
-    /* 触屏虚拟控件 */
-    .touch-layer{ position: fixed; inset: 0; pointer-events: none; }
-    .pad, .fire, .pause-fab {
-      position: absolute; pointer-events: auto; -webkit-tap-highlight-color: transparent;
-    }
-    .pad {
-      left: 12px; bottom: 12px; width: 180px; height: 180px;
-      display: grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr);
-      gap: 8px; opacity: 0.95;
-    }
-    .pad button{
-      background: rgba(31,41,55,0.92); color: var(--text);
-      border: 1px solid var(--btn-border); border-radius: 12px; font-size: 18px;
-      touch-action: none;
-    }
-    .pad .empty{ background: transparent; border:0; }
-    .fire{
-      right: 16px; bottom: 28px; width: 92px; height: 92px; border-radius: 50%;
-      background: rgba(167,139,250,0.9); border:2px solid rgba(255,255,255,0.2);
-      font-weight: 700; display: grid; place-items: center;
-    }
-    .pause-fab{
-      right: 16px; bottom: 140px; width:56px; height:56px; border-radius:50%;
-      background: rgba(31,41,55,0.92); border:1px solid var(--btn-border);
-      display:grid; place-items:center; font-size:20px;
-    }
-    @media (hover:hover) and (pointer:fine){ .touch-layer{ display:none; } }
-
-    /* 设置抽屉 */
-    .drawer{
-      position: fixed; right: 12px; top: env(safe-area-inset-top, 12px);
-      width: min(92vw, 360px); max-height: 80vh; overflow:auto;
-      padding: 12px; border-radius: 12px;
-      background: rgba(15,23,42,0.96); border:1px solid var(--border);
-      backdrop-filter: blur(6px); display: none;
-    }
-    .drawer h3{ margin: 4px 0 8px; }
-    .row{ display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 0; }
-    .range{ width: 180px; }
-    .hint{ color: var(--muted); font-size: 12px; }
-
-    /* 顶部状态条 */
-    .pill{
-      padding: 6px 10px; border-radius: 999px; background: #111827; border:1px solid #374151;
-    }
-    .ok{ color: var(--good); } .warn{ color: var(--warn); } .bad{ color: var(--bad); }
+    button.primary{background:#1d4ed8;border-color:#1e40af}
+    button.danger{background:#991b1b;border-color:#7f1d1d}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .sidebar{display:grid;gap:12px}
+    .log{height:320px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:13px;line-height:1.5}
+    .log p{margin:.2em 0;color:var(--muted)}
+    .stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .stat .panel{display:grid;gap:6px}
+    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding-bottom:4px}
+    .turn{color:var(--warn);font-weight:700}
+    .folded{opacity:.5}
   </style>
 </head>
 <body>
-  <div id="wrap">
-    <!-- 顶部工具栏 -->
-    <div class="bar">
-      <span class="pill" id="netStatus">⏻ Offline-ready</span>
-      <span class="pill" id="fpsPill">FPS: --</span>
-      <span id="status"></span>
-      <span class="spacer"></span>
-      <button class="btn" id="btnInstall" style="display:none;">安装到主屏</button>
-      <button class="btn" id="btnSettings">设置</button>
-      <button class="btn" id="btnPause">暂停</button>
-      <button class="btn" id="btnResume" style="display:none;">继续</button>
+  <div class="wrap">
+    <div class="topbar">
+      <span class="badge">底注(Ante): <b id="ante">10</b></span>
+      <span class="badge">单位加注: <b id="unitBet">10</b></span>
+      <span class="badge">最大加注次数: <b id="maxRaises">3</b></span>
+      <span class="badge">底池 Pot: <span class="pot" id="pot">0</span></span>
+      <span class="badge">当前需跟注: <b id="currentBet">0</b></span>
+      <span class="badge">轮到: <span id="turnName" class="turn">-</span></span>
     </div>
 
-    <!-- 画布 -->
-    <canvas id="game" width="960" height="560" aria-label="Tank game"></canvas>
+    <div class="row">
+      <div class="table panel">
+        <div class="players" id="players"></div>
 
-    <!-- 底部提示 -->
-    <div class="bar" style="opacity:0.9;">
-      <span>桌面调试：<span class="kbd">W/A/S/D</span> 或 <span class="kbd">↑/←/↓/→</span> 移动，<span class="kbd">Space</span> 射击</span>
-      <span class="spacer"></span>
-      <span id="bestPill" class="pill">Best: --</span>
-      <span id="scorePill" class="pill">Score: 0</span>
-      <span id="hpPill" class="pill">HP: 5</span>
-      <span id="enemyPill" class="pill">Enemies: --</span>
+        <div class="btns" id="actionBar">
+          <button id="btnFold" class="danger">弃牌</button>
+          <button id="btnCall">跟注</button>
+          <button id="btnRaise" class="primary">加注</button>
+          <button id="btnNext" style="display:none;">下一局</button>
+        </div>
+      </div>
+
+      <div class="sidebar">
+        <div class="panel">
+          <h3>说明</h3>
+          <div style="font-size:14px;color:var(--muted);line-height:1.55">
+            规则：每人发三张牌。牌型强弱：<br>
+            <b>豹子(三条) &gt; 同花顺 &gt; 同花 &gt; 顺子 &gt; 对子 &gt; 高牌</b>。<br>
+            A 可作大或小（A-2-3 最小顺子，Q-K-A 最大）。<br>
+            一轮下注：你可“弃牌 / 跟注 / 加注”（单位加注为固定额度）。<br>
+            所有人都跟到相同金额或只剩一人未弃牌 → 摊牌结算。
+          </div>
+        </div>
+
+        <div class="panel stat">
+          <div class="panel">
+            <h3>局面</h3>
+            <div class="kv"><span>底池</span><b id="statPot">0</b></div>
+            <div class="kv"><span>当前跟注</span><b id="statNeed">0</b></div>
+            <div class="kv"><span>已加注次数</span><b id="statRaises">0</b></div>
+            <div class="kv"><span>存活玩家</span><b id="statAlive">0</b></div>
+          </div>
+          <div class="panel">
+            <h3>你(玩家)</h3>
+            <div class="kv"><span>你的筹码</span><b id="meChips">0</b></div>
+            <div class="kv"><span>你本轮已下</span><b id="meBet">0</b></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>日志</h3>
+          <div class="log" id="log"></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- 触屏层：D-Pad + 火力 + 悬浮暂停 -->
-  <div class="touch-layer">
-    <div class="pad" aria-label="D-pad">
-      <button class="empty" disabled></button>
-      <button data-k="up">▲</button>
-      <button class="empty" disabled></button>
-      <button data-k="left">◄</button>
-      <button class="empty" disabled></button>
-      <button data-k="right">►</button>
-      <button class="empty" disabled></button>
-      <button data-k="down">▼</button>
-      <button class="empty" disabled></button>
-    </div>
-    <button class="fire" id="fireBtn" aria-label="Fire">FIRE</button>
-    <button class="pause-fab" id="pauseFab" aria-label="Pause/Resume">II</button>
-  </div>
+  <script>
+    /***********************
+     * 工具 & 牌面定义
+     ***********************/
+    const SUITS = ['♠','♥','♦','♣'];
+    const RANKS = [2,3,4,5,6,7,8,9,10,11,12,13,14]; // 11=J,12=Q,13=K,14=A
+    const RANK_LABEL = v => ({11:'J',12:'Q',13:'K',14:'A'}[v] || String(v));
+    const isRed = s => (s==='♥' || s==='♦');
 
-  <!-- 设置抽屉 -->
-  <div class="drawer" id="drawer">
-    <h3>设置</h3>
-    <div class="row">
-      <span>难度（敌人速度倍率）</span>
-      <input id="rangeDifficulty" class="range" type="range" min="0.5" max="2.0" step="0.1" value="1.0">
-    </div>
-    <div class="row">
-      <span>音效</span>
-      <label class="toggle"><input type="checkbox" id="chkSfx" checked> 启用</label>
-    </div>
-    <div class="row">
-      <span>震动（移动端）</span>
-      <label class="toggle"><input type="checkbox" id="chkVibrate" checked> 启用</label>
-    </div>
-    <div class="row">
-      <span>全屏（支持的浏览器）</span>
-      <button class="btn" id="btnFullscreen">进入/退出</button>
-    </div>
-    <div class="row">
-      <span>重置最高分</span>
-      <button class="btn" id="btnResetBest">清除</button>
-    </div>
-    <div class="hint">提示：iOS 请用 Safari哈哈 打开并 “添加到主屏幕”，体验接近原生 App。</div>
-  </div>
+    function createDeck(){
+      const deck = [];
+      for(const s of SUITS){
+        for(const r of RANKS){
+          deck.push({suit:s, rank:r});
+        }
+      }
+      return deck;
+    }
+    function shuffle(arr){
+      for(let i=arr.length-1;i>0;i--){
+        const j = (Math.random()* (i+1))|0;
+        [arr[i],arr[j]] = [arr[j],arr[i]];
+      }
+      return arr;
+    }
 
-  <!-- 主脚本 -->
-  <script src="./app.js"></script>
+    /***********************
+     * 手牌评估（扎金花）
+     * 返回 {cat, scoreVec, name}
+     * cat 越大越强：6豹子,5同花顺,4同花,3顺子,2对子,1高牌
+     * scoreVec 用于细比大小（数组逐项比较）
+     ***********************/
+    function evaluate3(hand){
+      const ranks = hand.map(c=>c.rank).sort((a,b)=>b-a); // 降序
+      const suits = hand.map(c=>c.suit);
+      const isFlush = (new Set(suits)).size === 1;
+
+      // 顺子判断：支持 A-2-3（把 A 当 1 再试一次）
+      function straightHigh(rs){
+        const r = [...new Set(rs)].sort((a,b)=>a-b); // 升序且去重
+        if (r.length !== 3) return null;
+        // 正常连续
+        if (r[1] === r[0]+1 && r[2] === r[1]+1) return r[2]; // 最高牌
+        // A-2-3：把 A(14) 当 1 重试
+        const r2 = r.map(x=>x===14?1:x).sort((a,b)=>a-b);
+        if (r2[1] === r2[0]+1 && r2[2] === r2[1]+1){
+          return r2[2]; // 这里最高为 3（最小顺子）
+        }
+        return null;
+      }
+      const sh = straightHigh(ranks);
+      const counts = {};
+      for(const r of ranks) counts[r]=(counts[r]||0)+1;
+      const groups = Object.entries(counts).map(([r,c])=>({r: +r, c}));
+      // 三条
+      if (groups.some(g=>g.c===3)){
+        const v = groups.find(g=>g.c===3).r;
+        return {cat:6, scoreVec:[v], name:'豹子(三条)'};
+      }
+      // 同花顺
+      if (isFlush && sh!==null){
+        return {cat:5, scoreVec:[sh], name:'同花顺'};
+      }
+      // 同花
+      if (isFlush){
+        return {cat:4, scoreVec:ranks, name:'同花'};
+      }
+      // 顺子
+      if (sh!==null){
+        return {cat:3, scoreVec:[sh], name:'顺子'};
+      }
+      // 对子
+      if (groups.some(g=>g.c===2)){
+        const pair = groups.find(g=>g.c===2).r;
+        const kick = groups.find(g=>g.c===1).r;
+        return {cat:2, scoreVec:[pair, kick], name:'对子'};
+      }
+      // 高牌
+      return {cat:1, scoreVec:ranks, name:'高牌'};
+    }
+
+    function compareHands(a,b){
+      if (a.cat !== b.cat) return a.cat - b.cat;
+      // 逐项比较 scoreVec
+      for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){
+        const av = a.scoreVec[i]??0, bv = b.scoreVec[i]??0;
+        if (av !== bv) return av - bv;
+      }
+      return 0; // 完全相同（极少见） -> 平分底池
+    }
+
+    /***********************
+     * 游戏状态
+     ***********************/
+    const cfg = {
+      ante: 10,
+      unitBet: 10,
+      maxRaises: 3,
+      startChips: 500
+    };
+
+    const state = {
+      players: [],   // {id,name,isHuman,chips,hand,folded,betThisRound}
+      deck: [],
+      pot: 0,
+      currentBet: 0,     // 这一轮需要跟到的金额
+      raises: 0,         // 已经加注次数
+      turnIndex: 0,      // 当前行动者索引
+      inRound: false,
+      showdown: false
+    };
+
+    const logEl = document.getElementById('log');
+    function log(msg){
+      const p = document.createElement('p');
+      p.textContent = msg;
+      logEl.appendChild(p);
+      logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    /***********************
+     * 初始化与新一局
+     ***********************/
+    const playersEl = document.getElementById('players');
+    const potEl = document.getElementById('pot');
+    const needEl = document.getElementById('currentBet');
+    const turnEl = document.getElementById('turnName');
+    const statPotEl = document.getElementById('statPot');
+    const statNeedEl = document.getElementById('statNeed');
+    const statRaisesEl = document.getElementById('statRaises');
+    const statAliveEl = document.getElementById('statAlive');
+    const meChipsEl = document.getElementById('meChips');
+    const meBetEl = document.getElementById('meBet');
+
+    function setupPlayers(){
+      state.players = [
+        {id:0,name:'你(玩家)',isHuman:true, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
+        {id:1,name:'机器人A',isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
+        {id:2,name:'机器人B',isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
+        {id:3,name:'机器人C',isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
+      ];
+    }
+
+    function newRound(){
+      state.inRound = true;
+      state.showdown = false;
+      state.pot = 0;
+      state.currentBet = 0;
+      state.raises = 0;
+      state.deck = shuffle(createDeck());
+      for(const p of state.players){
+        p.hand = [state.deck.pop(), state.deck.pop(), state.deck.pop()];
+        p.folded = false;
+        p.betThisRound = 0;
+      }
+      // 全员扣底注
+      for(const p of alivePlayers()){
+        const antePay = Math.min(cfg.ante, p.chips);
+        p.chips -= antePay;
+        state.pot += antePay;
+      }
+      log('—— 新一局开始，收取底注 ——');
+      // 玩家先手
+      state.turnIndex = 0;
+      render();
+      maybeAutoTurn();
+    }
+
+    function alivePlayers(){
+      return state.players.filter(p=>!p.folded && p.chips>=0);
+    }
+
+    /***********************
+     * 渲染 UI
+     ***********************/
+    function render(){
+      potEl.textContent = state.pot;
+      needEl.textContent = state.currentBet;
+      turnEl.textContent = state.inRound ? state.players[state.turnIndex].name : '-';
+      statPotEl.textContent = state.pot;
+      statNeedEl.textContent = state.currentBet;
+      statRaisesEl.textContent = state.raises;
+      statAliveEl.textContent = alivePlayers().length;
+
+      playersEl.innerHTML = '';
+      for(const p of state.players){
+        const div = document.createElement('div');
+        div.className = 'panel' + (p.folded?' folded':'');
+        div.innerHTML = `
+          <h3>${p.name} <span class="chips">￥${p.chips}</span>${state.players[state.turnIndex]===p?'<span class="turn">（行动）</span>':''}</h3>
+          <div class="cards">
+            ${p.hand.map((c,idx)=>{
+              const faceUp = p.isHuman || state.showdown || p.folded;
+              const suitCls = faceUp && isRed(c.suit) ? 'suit-red':'';
+              return faceUp
+                ? `<div class="card face ${suitCls}">${RANK_LABEL(c.rank)}<small>${c.suit}</small></div>`
+                : `<div class="card">🂠</div>`;
+            }).join('')}
+          </div>
+          <div style="font-size:13px;color:var(--muted);display:flex;gap:10px;">
+            <span>本轮下注：￥${p.betThisRound}</span>
+            ${ (state.showdown || p.folded) ? showEval(p) : '' }
+          </div>
+        `;
+        playersEl.appendChild(div);
+      }
+
+      const me = state.players[0];
+      meChipsEl.textContent = me.chips;
+      meBetEl.textContent = me.betThisRound;
+
+      // 行为按钮可用性
+      const myTurn = state.inRound && state.players[state.turnIndex].isHuman && !state.showdown;
+      document.getElementById('btnFold').disabled = !myTurn;
+      document.getElementById('btnCall').disabled = !myTurn;
+      document.getElementById('btnRaise').disabled = !(myTurn && state.raises < cfg.maxRaises);
+
+      document.getElementById('btnNext').style.display = (!state.inRound && !state.showdown) ? 'inline-block' : (state.showdown && !state.inRound ? 'inline-block':'none');
+    }
+
+    function showEval(p){
+      if (p.folded) return `<span style="color:var(--danger)">已弃牌</span>`;
+      const eva = evaluate3(p.hand);
+      return `<span>牌型：<b>${eva.name}</b></span>`;
+    }
+
+    /***********************
+     * 回合推进
+     ***********************/
+    function nextTurn(){
+      // 所有人都已跟到相同金额？或只剩 1 人存活？ -> 进入摊牌
+      const alive = alivePlayers();
+      if (alive.length === 1){
+        // 提前结束：唯一存活者直接赢
+        winnerTake(alive[0], true);
+        return;
+      }
+      const target = Math.max(...alive.map(p=>p.betThisRound));
+      const allMatched = alive.every(p=>p.betThisRound === target);
+      if (allMatched){
+        // 摊牌
+        showdown();
+        return;
+      }
+
+      // 顺时针找下一位未弃牌者
+      const n = state.players.length;
+      for (let step=1; step<=n; step++){
+        const idx = (state.turnIndex + step) % n;
+        const cand = state.players[idx];
+        if (!cand.folded){
+          state.turnIndex = idx;
+          break;
+        }
+      }
+      render();
+      maybeAutoTurn();
+    }
+
+    function maybeAutoTurn(){
+      const p = state.players[state.turnIndex];
+      if (!state.inRound || state.showdown) return;
+      if (!p.isHuman){
+        setTimeout(()=>botAct(p), 600);
+      }
+    }
+
+    function payToPot(p, amount){
+      const pay = Math.max(0, Math.min(amount, p.chips));
+      p.chips -= pay;
+      p.betThisRound += pay;
+      state.pot += pay;
+      return pay;
+    }
+
+    /***********************
+     * 玩家操作
+     ***********************/
+    document.getElementById('btnFold').addEventListener('click', ()=>{
+      if (!state.inRound) return;
+      const me = state.players[0];
+      me.folded = true;
+      log(`你选择：弃牌`);
+      nextTurn();
+    });
+
+    document.getElementById('btnCall').addEventListener('click', ()=>{
+      if (!state.inRound) return;
+      const me = state.players[0];
+      const need = Math.max(0, state.currentBet - me.betThisRound);
+      const paid = payToPot(me, need);
+      log(`你选择：跟注 ￥${paid}`);
+      nextTurn();
+    });
+
+    document.getElementById('btnRaise').addEventListener('click', ()=>{
+      if (!state.inRound || state.raises >= cfg.maxRaises) return;
+      const me = state.players[0];
+      const need = Math.max(0, state.currentBet - me.betThisRound);
+      const paidCall = payToPot(me, need);
+      state.currentBet += cfg.unitBet;
+      state.raises += 1;
+      const paidRaise = payToPot(me, cfg.unitBet);
+      log(`你选择：先跟 ￥${paidCall} 再加注 ￥${paidRaise}（当前需跟注=${state.currentBet}）`);
+      nextTurn();
+    });
+
+    document.getElementById('btnNext').addEventListener('click', ()=>{
+      newRound();
+    });
+
+    /***********************
+     * 机器人 AI（极简启发式）
+     ***********************/
+    function botStrength(p){
+      const eva = evaluate3(p.hand);
+      // 归一化强度：大类*100 + 次级比较
+      let minor = 0;
+      if (eva.scoreVec && eva.scoreVec.length){
+        // 把 kicker 合成一个值（不是完全精确，但足够用于简单决策）
+        minor = eva.scoreVec.reduce((acc,v,i)=>acc + v*Math.pow(0.01, i), 0);
+      }
+      return eva.cat*100 + minor;
+    }
+
+    function botAct(p){
+      // 需要跟到的金额差
+      const need = Math.max(0, state.currentBet - p.betThisRound);
+      const S = botStrength(p);
+
+      // 简易策略阈值
+      const STRONG = 500; // ~顺子/同花以上
+      const MEDIUM = 250; // ~对子
+      const canRaise = state.raises < cfg.maxRaises && p.chips > need + cfg.unitBet;
+
+      if (S >= STRONG){
+        // 强牌：优先加注
+        if (canRaise){
+          // 先补跟
+          payToPot(p, need);
+          state.currentBet += cfg.unitBet;
+          state.raises += 1;
+          payToPot(p, cfg.unitBet);
+          log(`${p.name}：加注（当前需跟注=${state.currentBet}）`);
+        }else{
+          const paid = payToPot(p, need);
+          log(`${p.name}：跟注 ￥${paid}`);
+        }
+      }else if (S >= MEDIUM){
+        // 中等牌：多数跟，偶尔加注
+        if (canRaise && Math.random() < 0.25){
+          payToPot(p, need);
+          state.currentBet += cfg.unitBet;
+          state.raises += 1;
+          payToPot(p, cfg.unitBet);
+          log(`${p.name}：加注（当前需跟注=${state.currentBet}）`);
+        }else{
+          const paid = payToPot(p, need);
+          log(`${p.name}：跟注 ￥${paid}`);
+        }
+      }else{
+        // 弱牌：多数跟，小概率弃牌
+        if (need>0 && Math.random() < 0.5){
+          p.folded = true;
+          log(`${p.name}：弃牌`);
+        }else{
+          const paid = payToPot(p, need);
+          log(`${p.name}：跟注 ￥${paid}`);
+        }
+      }
+      nextTurn();
+    }
+
+    /***********************
+     * 摊牌 & 结算
+     ***********************/
+    function showdown(){
+      state.inRound = false;
+      state.showdown = true;
+
+      const alive = alivePlayers();
+      let best = null, winners = [];
+      for(const p of alive){
+        const eva = evaluate3(p.hand);
+        if (!best){
+          best = {p, eva};
+          winners = [p];
+        }else{
+          const cmp = compareHands(eva, best.eva);
+          if (cmp>0){ best = {p, eva}; winners = [p]; }
+          else if (cmp===0){ winners.push(p); }
+        }
+      }
+
+      if (winners.length === 1){
+        winners[0].chips += state.pot;
+        log(`【摊牌】赢家：${winners[0].name}（${evaluate3(winners[0].hand).name}），赢得 ￥${state.pot}`);
+      }else{
+        const share = Math.floor(state.pot / winners.length);
+        for(const w of winners) w.chips += share;
+        log(`【摊牌】平分底池：${winners.map(w=>w.name).join('、')} 各得 ￥${share}`);
+      }
+      state.pot = 0;
+      render();
+      document.getElementById('btnNext').style.display = 'inline-block';
+    }
+
+    function winnerTake(p, byFold){
+      state.inRound = false;
+      state.showdown = true;
+      p.chips += state.pot;
+      log(byFold ? `其余玩家弃牌，${p.name} 直接赢得 ￥${state.pot}` : `${p.name} 获胜！`);
+      state.pot = 0;
+      render();
+      document.getElementById('btnNext').style.display = 'inline-block';
+    }
+
+    /***********************
+     * 启动
+     ***********************/
+    document.getElementById('ante').textContent = cfg.ante;
+    document.getElementById('unitBet').textContent = cfg.unitBet;
+    document.getElementById('maxRaises').textContent = cfg.maxRaises;
+
+    setupPlayers();
+    newRound();
+  </script>
 </body>
 </html>
+
+
 
