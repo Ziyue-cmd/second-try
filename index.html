@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>扎金花 · 简易对战（1人+3机器人）</title>
+  <title>扎金花 · 四座位（1 人 + 3 机器人）</title>
 
-  <!-- 可选：如果你已有 PWA 文件，保留以下两行；否则可以先注释掉 -->
+  <!-- 可选：PWA 文件（若没有可先注释掉） -->
   <link rel="manifest" href="./manifest.json" />
   <script>
     if ('serviceWorker' in navigator) {
@@ -18,6 +18,7 @@
   <style>
     :root{
       --bg:#0b1020;
+      --felt:#0d1b2a;
       --panel:#111827;
       --muted:#9ca3af;
       --text:#e5e7eb;
@@ -29,101 +30,133 @@
     }
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px}
-    .topbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+    .wrap{max-width:1100px;margin:0 auto;padding:12px;display:grid;gap:12px}
+
+    /* 顶部信息条 */
+    .topbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .badge{padding:4px 8px;border:1px solid var(--border);border-radius:10px;background:#0f172a}
-    .row{display:grid;grid-template-columns:1fr 330px;gap:16px}
-    .table{background:linear-gradient(180deg,#0f172a,#0b1328);border:1px solid var(--border);border-radius:14px;padding:12px;}
-    .players{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    .panel{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px}
-    .panel h3{margin:0 0 6px;font-size:16px;display:flex;align-items:center;gap:8px}
-    .chips{font-weight:700;color:var(--ok)}
     .pot{font-weight:700;color:var(--accent)}
+    .turn{color:var(--warn);font-weight:700}
+
+    /* 桌面与座位布局 */
+    .table{
+      position:relative;
+      height:600px; /* 桌面高度，可调 */
+      border:1px solid var(--border);
+      border-radius:16px;
+      background: radial-gradient(ellipse at center, #0f2a2a 0%, var(--felt) 60%, #0b1328 100%);
+      overflow:hidden;
+    }
+    .center-info{
+      position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+      text-align:center; color:#cbd5e1; font-size:14px;
+    }
+    .center-info h2{margin:.2em 0 .4em; font-size:20px}
+    .seats{
+      position:absolute; inset:0;
+    }
+
+    .seat{
+      position:absolute;
+      width:260px; max-width:38vw;
+      border:1px solid var(--border); border-radius:12px; background:var(--panel);
+      padding:8px;
+      box-shadow:0 8px 24px rgba(0,0,0,.25);
+    }
+    .seat h3{margin:0 0 6px; font-size:16px; display:flex; align-items:center; gap:8px}
+    .chips{font-weight:700;color:var(--ok)}
+    .folded{opacity:.55; filter:grayscale(.2)}
+    .acting{outline:2px solid var(--warn)}
+    /* 四个座位的位置（上、右、下、左） */
+    .seat.top{left:50%; top:8px; transform:translateX(-50%)}
+    .seat.right{right:8px; top:50%; transform:translateY(-50%)}
+    .seat.bottom{left:50%; bottom:8px; transform:translateX(-50%)}
+    .seat.left{left:8px; top:50%; transform:translateY(-50%)}
+
+    /* 扑克牌显示 */
     .cards{display:flex;gap:8px;margin:6px 0 2px}
     .card{
-      width:48px;height:68px;border-radius:8px;border:1px solid #374151;display:grid;place-items:center;
+      width:52px;height:72px;border-radius:8px;border:1px solid #374151;display:grid;place-items:center;
       background:#0b1328;font-weight:700;
     }
     .card.face{background:#f8fafc;color:#0b1020;border-color:#cbd5e1}
     .suit-red{color:#ef4444}
-    .btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+
+    /* 操作栏 */
+    .actions{
+      margin-top:6px; display:flex; gap:8px; flex-wrap:wrap;
+    }
     button{
       padding:8px 12px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer;
     }
     button.primary{background:#1d4ed8;border-color:#1e40af}
     button.danger{background:#991b1b;border-color:#7f1d1d}
     button:disabled{opacity:.5;cursor:not-allowed}
+
+    /* 侧边信息区 */
     .sidebar{display:grid;gap:12px}
-    .log{height:320px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:13px;line-height:1.5}
-    .log p{margin:.2em 0;color:var(--muted)}
-    .stat{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .stat .panel{display:grid;gap:6px}
-    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding-bottom:4px}
-    .turn{color:var(--warn);font-weight:700}
-    .folded{opacity:.5}
+    .panel{border:1px solid var(--border);border-radius:12px;background:var(--panel);padding:12px}
+    .panel h4{margin:.2em 0 .6em}
+    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding:4px 0}
+    .log{height:180px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:13px;line-height:1.5}
+    .log p{margin:.2em 0;color:#c0cad6}
+    @media (max-width:980px){
+      .wrap{max-width:100%; padding:8px}
+      .table{height:520px}
+      .seat{width:220px}
+    }
   </style>
 </head>
 <body>
   <div class="wrap">
+    <!-- 顶部状态条 -->
     <div class="topbar">
       <span class="badge">底注(Ante): <b id="ante">10</b></span>
       <span class="badge">单位加注: <b id="unitBet">10</b></span>
-      <span class="badge">最大加注次数: <b id="maxRaises">3</b></span>
+      <span class="badge">最大加注/轮: <b id="maxRaises">3</b></span>
+      <span class="badge">最大轮次: <b id="maxRounds">20</b></span>
       <span class="badge">底池 Pot: <span class="pot" id="pot">0</span></span>
       <span class="badge">当前需跟注: <b id="currentBet">0</b></span>
       <span class="badge">轮到: <span id="turnName" class="turn">-</span></span>
+      <span class="badge">当前轮次: <b id="roundNow">1</b></span>
     </div>
 
-    <div class="row">
-      <div class="table panel">
-        <div class="players" id="players"></div>
+    <!-- 主桌面 + 座位 -->
+    <div class="table">
+      <div class="seats" id="seats"></div>
 
-        <div class="btns" id="actionBar">
-          <button id="btnFold" class="danger">弃牌</button>
-          <button id="btnCall">跟注</button>
-          <button id="btnRaise" class="primary">加注</button>
-          <button id="btnNext" style="display:none;">下一局</button>
-        </div>
+      <div class="center-info">
+        <h2>扎金花</h2>
+        <div>当所有未弃牌者在某一轮“下到同额” → 自动进入下一轮。</div>
+        <div>你可随时点击 <b>开牌</b>，或机器人在若干轮后随机开牌。</div>
       </div>
+    </div>
 
-      <div class="sidebar">
-        <div class="panel">
-          <h3>说明</h3>
-          <div style="font-size:14px;color:var(--muted);line-height:1.55">
-            规则：每人发三张牌。牌型强弱：<br>
-            <b>豹子(三条) &gt; 同花顺 &gt; 同花 &gt; 顺子 &gt; 对子 &gt; 高牌</b>。<br>
-            A 可作大或小（A-2-3 最小顺子，Q-K-A 最大）。<br>
-            一轮下注：你可“弃牌 / 跟注 / 加注”（单位加注为固定额度）。<br>
-            所有人都跟到相同金额或只剩一人未弃牌 → 摊牌结算。
-          </div>
-        </div>
-
-        <div class="panel stat">
-          <div class="panel">
-            <h3>局面</h3>
-            <div class="kv"><span>底池</span><b id="statPot">0</b></div>
-            <div class="kv"><span>当前跟注</span><b id="statNeed">0</b></div>
-            <div class="kv"><span>已加注次数</span><b id="statRaises">0</b></div>
-            <div class="kv"><span>存活玩家</span><b id="statAlive">0</b></div>
-          </div>
-          <div class="panel">
-            <h3>你(玩家)</h3>
-            <div class="kv"><span>你的筹码</span><b id="meChips">0</b></div>
-            <div class="kv"><span>你本轮已下</span><b id="meBet">0</b></div>
-          </div>
-        </div>
-
-        <div class="panel">
-          <h3>日志</h3>
-          <div class="log" id="log"></div>
-        </div>
+    <!-- 侧栏 -->
+    <div class="sidebar">
+      <div class="panel">
+        <h4>局面</h4>
+        <div class="kv"><span>底池</span><b id="statPot">0</b></div>
+        <div class="kv"><span>当前跟注</span><b id="statNeed">0</b></div>
+        <div class="kv"><span>已加注次数（本轮）</span><b id="statRaises">0</b></div>
+        <div class="kv"><span>当前轮次</span><b id="statRound">1</b></div>
+        <div class="kv"><span>存活玩家</span><b id="statAlive">4</b></div>
+      </div>
+      <div class="panel">
+        <h4>你（玩家）</h4>
+        <div class="kv"><span>筹码</span><b id="meChips">0</b></div>
+        <div class="kv"><span>你本轮已下</span><b id="meBet">0</b></div>
+      </div>
+      <div class="panel">
+        <h4>日志</h4>
+        <div class="log" id="log"></div>
       </div>
     </div>
   </div>
 
   <script>
     /***********************
-     * 工具 & 牌面定义
+     * 工具 & 牌面
      ***********************/
     const SUITS = ['♠','♥','♦','♣'];
     const RANKS = [2,3,4,5,6,7,8,9,10,11,12,13,14]; // 11=J,12=Q,13=K,14=A
@@ -131,411 +164,408 @@
     const isRed = s => (s==='♥' || s==='♦');
 
     function createDeck(){
-      const deck = [];
-      for(const s of SUITS){
-        for(const r of RANKS){
-          deck.push({suit:s, rank:r});
-        }
-      }
-      return deck;
+      const d = [];
+      for (const s of SUITS) for (const r of RANKS) d.push({suit:s, rank:r});
+      return d;
     }
-    function shuffle(arr){
-      for(let i=arr.length-1;i>0;i--){
-        const j = (Math.random()* (i+1))|0;
-        [arr[i],arr[j]] = [arr[j],arr[i]];
-      }
-      return arr;
+    function shuffle(a){
+      for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0; [a[i],a[j]]=[a[j],a[i]]; }
+      return a;
     }
 
     /***********************
      * 手牌评估（扎金花）
      * 返回 {cat, scoreVec, name}
      * cat 越大越强：6豹子,5同花顺,4同花,3顺子,2对子,1高牌
-     * scoreVec 用于细比大小（数组逐项比较）
      ***********************/
     function evaluate3(hand){
-      const ranks = hand.map(c=>c.rank).sort((a,b)=>b-a); // 降序
+      const ranks = hand.map(c=>c.rank).sort((a,b)=>b-a);
       const suits = hand.map(c=>c.suit);
-      const isFlush = (new Set(suits)).size === 1;
+      const isFlush = (new Set(suits)).size===1;
 
-      // 顺子判断：支持 A-2-3（把 A 当 1 再试一次）
       function straightHigh(rs){
-        const r = [...new Set(rs)].sort((a,b)=>a-b); // 升序且去重
-        if (r.length !== 3) return null;
-        // 正常连续
-        if (r[1] === r[0]+1 && r[2] === r[1]+1) return r[2]; // 最高牌
-        // A-2-3：把 A(14) 当 1 重试
-        const r2 = r.map(x=>x===14?1:x).sort((a,b)=>a-b);
-        if (r2[1] === r2[0]+1 && r2[2] === r2[1]+1){
-          return r2[2]; // 这里最高为 3（最小顺子）
-        }
+        const r=[...new Set(rs)].sort((a,b)=>a-b);
+        if(r.length!==3) return null;
+        if(r[1]===r[0]+1 && r[2]===r[1]+1) return r[2];
+        const r2=r.map(x=>x===14?1:x).sort((a,b)=>a-b);
+        if(r2[1]===r2[0]+1 && r2[2]===r2[1]+1) return r2[2]; // 3 (A-2-3)
         return null;
       }
-      const sh = straightHigh(ranks);
-      const counts = {};
-      for(const r of ranks) counts[r]=(counts[r]||0)+1;
-      const groups = Object.entries(counts).map(([r,c])=>({r: +r, c}));
-      // 三条
-      if (groups.some(g=>g.c===3)){
-        const v = groups.find(g=>g.c===3).r;
-        return {cat:6, scoreVec:[v], name:'豹子(三条)'};
-      }
-      // 同花顺
-      if (isFlush && sh!==null){
-        return {cat:5, scoreVec:[sh], name:'同花顺'};
-      }
-      // 同花
-      if (isFlush){
-        return {cat:4, scoreVec:ranks, name:'同花'};
-      }
-      // 顺子
-      if (sh!==null){
-        return {cat:3, scoreVec:[sh], name:'顺子'};
-      }
-      // 对子
-      if (groups.some(g=>g.c===2)){
-        const pair = groups.find(g=>g.c===2).r;
-        const kick = groups.find(g=>g.c===1).r;
-        return {cat:2, scoreVec:[pair, kick], name:'对子'};
-      }
-      // 高牌
-      return {cat:1, scoreVec:ranks, name:'高牌'};
-    }
+      const sh=straightHigh(ranks);
+      const counts={}; for(const r of ranks) counts[r]=(counts[r]||0)+1;
+      const groups=Object.entries(counts).map(([r,c])=>({r:+r,c}));
 
-    function compareHands(a,b){
-      if (a.cat !== b.cat) return a.cat - b.cat;
-      // 逐项比较 scoreVec
-      for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){
-        const av = a.scoreVec[i]??0, bv = b.scoreVec[i]??0;
-        if (av !== bv) return av - bv;
+      if(groups.some(g=>g.c===3)) { const v=groups.find(g=>g.c===3).r; return {cat:6,scoreVec:[v],name:'豹子(三条)'}; }
+      if(isFlush && sh!==null)    return {cat:5,scoreVec:[sh],name:'同花顺'};
+      if(isFlush)                 return {cat:4,scoreVec:ranks,name:'同花'};
+      if(sh!==null)               return {cat:3,scoreVec:[sh],name:'顺子'};
+      if(groups.some(g=>g.c===2)){
+        const pair=groups.find(g=>g.c===2).r; const kick=groups.find(g=>g.c===1).r;
+        return {cat:2,scoreVec:[pair,kick],name:'对子'};
       }
-      return 0; // 完全相同（极少见） -> 平分底池
+      return {cat:1,scoreVec:ranks,name:'高牌'};
+    }
+    function compareHands(a,b){
+      if(a.cat!==b.cat) return a.cat-b.cat;
+      for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){
+        const av=a.scoreVec[i]??0, bv=b.scoreVec[i]??0;
+        if(av!==bv) return av-bv;
+      }
+      return 0;
     }
 
     /***********************
-     * 游戏状态
+     * 配置 & 状态（支持多轮下注）
      ***********************/
     const cfg = {
       ante: 10,
       unitBet: 10,
-      maxRaises: 3,
+      maxRaisesPerRound: 3,
+      maxRounds: 20,
       startChips: 500
     };
-
     const state = {
-      players: [],   // {id,name,isHuman,chips,hand,folded,betThisRound}
+      players: [],   // {id,name,pos,isHuman,chips,hand,folded,betThisRound,totalBet}
       deck: [],
       pot: 0,
-      currentBet: 0,     // 这一轮需要跟到的金额
-      raises: 0,         // 已经加注次数
-      turnIndex: 0,      // 当前行动者索引
-      inRound: false,
+      roundIndex: 1,
+      raisesThisRound: 0,
+      currentBet: 0,
+      turnIndex: 0,
+      inHand: false,
       showdown: false
     };
-
-    const logEl = document.getElementById('log');
-    function log(msg){
-      const p = document.createElement('p');
-      p.textContent = msg;
-      logEl.appendChild(p);
-      logEl.scrollTop = logEl.scrollHeight;
-    }
+    const POSITIONS = ['top','right','bottom','left']; // 0~3
 
     /***********************
-     * 初始化与新一局
+     * DOM refs & log
      ***********************/
-    const playersEl = document.getElementById('players');
+    const seatsEl = document.getElementById('seats');
+    const logEl = document.getElementById('log');
     const potEl = document.getElementById('pot');
     const needEl = document.getElementById('currentBet');
     const turnEl = document.getElementById('turnName');
+    const meChipsEl = document.getElementById('meChips');
+    const meBetEl = document.getElementById('meBet');
     const statPotEl = document.getElementById('statPot');
     const statNeedEl = document.getElementById('statNeed');
     const statRaisesEl = document.getElementById('statRaises');
     const statAliveEl = document.getElementById('statAlive');
-    const meChipsEl = document.getElementById('meChips');
-    const meBetEl = document.getElementById('meBet');
+    const statRoundEl = document.getElementById('statRound');
+    const roundNowEl = document.getElementById('roundNow');
 
+    function log(msg){
+      const p=document.createElement('p'); p.textContent=msg; logEl.appendChild(p);
+      logEl.scrollTop=logEl.scrollHeight;
+    }
+
+    /***********************
+     * 初始化 & 开新局
+     ***********************/
     function setupPlayers(){
       state.players = [
-        {id:0,name:'你(玩家)',isHuman:true, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
-        {id:1,name:'机器人A',isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
-        {id:2,name:'机器人B',isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
-        {id:3,name:'机器人C',isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0},
+        {id:0, name:'你(玩家)', pos:'bottom', isHuman:true,  chips:cfg.startChips, hand:[], folded:false, betThisRound:0, totalBet:0},
+        {id:1, name:'机器人A', pos:'left',   isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0, totalBet:0},
+        {id:2, name:'机器人B', pos:'top',    isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0, totalBet:0},
+        {id:3, name:'机器人C', pos:'right',  isHuman:false, chips:cfg.startChips, hand:[], folded:false, betThisRound:0, totalBet:0},
       ];
     }
 
-    function newRound(){
-      state.inRound = true;
+    function newHand(){
+      state.inHand = true;
       state.showdown = false;
       state.pot = 0;
+      state.roundIndex = 1;
+      state.raisesThisRound = 0;
       state.currentBet = 0;
-      state.raises = 0;
+      state.turnIndex = 0;
+
       state.deck = shuffle(createDeck());
       for(const p of state.players){
         p.hand = [state.deck.pop(), state.deck.pop(), state.deck.pop()];
-        p.folded = false;
-        p.betThisRound = 0;
+        p.folded=false; p.betThisRound=0; p.totalBet=0;
       }
-      // 全员扣底注
+      // 底注
       for(const p of alivePlayers()){
-        const antePay = Math.min(cfg.ante, p.chips);
-        p.chips -= antePay;
-        state.pot += antePay;
+        const antePay=Math.min(cfg.ante,p.chips); p.chips-=antePay; state.pot+=antePay; p.totalBet+=antePay;
       }
       log('—— 新一局开始，收取底注 ——');
-      // 玩家先手
-      state.turnIndex = 0;
       render();
       maybeAutoTurn();
     }
 
-    function alivePlayers(){
-      return state.players.filter(p=>!p.folded && p.chips>=0);
-    }
+    function alivePlayers(){ return state.players.filter(p=>!p.folded && p.chips>=0); }
 
     /***********************
-     * 渲染 UI
+     * 渲染座位 & 按钮
      ***********************/
+    function seatHtml(p, acting){
+      const faceUp = p.isHuman || state.showdown || p.folded;
+      const cards = p.hand.map(c=>{
+        if(faceUp){
+          const red = isRed(c.suit) ? 'suit-red':'';
+          return `<div class="card face ${red}">${RANK_LABEL(c.rank)}<small>${c.suit}</small></div>`;
+        }else{
+          return `<div class="card">🂠</div>`;
+        }
+      }).join('');
+      const eva = (state.showdown || p.folded) ? `<div style="font-size:12px;color:#cbd5e1">牌型：<b>${evaluate3(p.hand).name}</b></div>` : '';
+      return `
+        <div class="seat ${p.pos} ${p.folded?'folded':''} ${acting?'acting':''}">
+          <h3>${p.name} <span class="chips">￥${p.chips}</span> ${acting?'<span class="turn">（行动）</span>':''}</h3>
+          <div class="cards">${cards}</div>
+          <div style="font-size:12px;color:#9fb0c1;display:flex;gap:10px">
+            <span>本轮下注：￥${p.betThisRound}</span>
+            <span>总投入：￥${p.totalBet}</span>
+          </div>
+          ${eva}
+          ${p.isHuman ? humanActionsHtml() : ''}
+        </div>
+      `;
+    }
+
+    function humanActionsHtml(){
+      // 玩家操作：弃牌、跟注、加注、开牌、下一局
+      return `
+        <div class="actions" id="actionBar">
+          <button id="btnFold" class="danger">弃牌</button>
+          <button id="btnCall">跟注</button>
+          <button id="btnRaise" class="primary">加注</button>
+          <button id="btnShowdown" title="主动开牌">开牌</button>
+          <button id="btnNext" style="display:none;">下一局</button>
+        </div>
+      `;
+    }
+
     function render(){
+      // 顶部/侧栏数值
       potEl.textContent = state.pot;
       needEl.textContent = state.currentBet;
-      turnEl.textContent = state.inRound ? state.players[state.turnIndex].name : '-';
+      turnEl.textContent = state.inHand ? state.players[state.turnIndex].name : '-';
       statPotEl.textContent = state.pot;
       statNeedEl.textContent = state.currentBet;
-      statRaisesEl.textContent = state.raises;
+      statRaisesEl.textContent = state.raisesThisRound;
       statAliveEl.textContent = alivePlayers().length;
+      statRoundEl.textContent = state.roundIndex;
+      roundNowEl.textContent = state.roundIndex;
+      meChipsEl.textContent = state.players[0].chips;
+      meBetEl.textContent = state.players[0].betThisRound;
 
-      playersEl.innerHTML = '';
-      for(const p of state.players){
-        const div = document.createElement('div');
-        div.className = 'panel' + (p.folded?' folded':'');
-        div.innerHTML = `
-          <h3>${p.name} <span class="chips">￥${p.chips}</span>${state.players[state.turnIndex]===p?'<span class="turn">（行动）</span>':''}</h3>
-          <div class="cards">
-            ${p.hand.map((c,idx)=>{
-              const faceUp = p.isHuman || state.showdown || p.folded;
-              const suitCls = faceUp && isRed(c.suit) ? 'suit-red':'';
-              return faceUp
-                ? `<div class="card face ${suitCls}">${RANK_LABEL(c.rank)}<small>${c.suit}</small></div>`
-                : `<div class="card">🂠</div>`;
-            }).join('')}
-          </div>
-          <div style="font-size:13px;color:var(--muted);display:flex;gap:10px;">
-            <span>本轮下注：￥${p.betThisRound}</span>
-            ${ (state.showdown || p.folded) ? showEval(p) : '' }
-          </div>
-        `;
-        playersEl.appendChild(div);
+      // 座位
+      seatsEl.innerHTML = '';
+      state.players.forEach((p,i)=>{
+        const acting = (state.inHand && i===state.turnIndex && !state.showdown && !p.folded);
+        seatsEl.insertAdjacentHTML('beforeend', seatHtml(p, acting));
+      });
+
+      // 绑定玩家按钮（由于每次重渲染要重新绑定）
+      const myTurn = canHumanAct();
+      const btnFold = document.getElementById('btnFold');
+      const btnCall = document.getElementById('btnCall');
+      const btnRaise = document.getElementById('btnRaise');
+      const btnShow = document.getElementById('btnShowdown');
+      const btnNext  = document.getElementById('btnNext');
+
+      if (btnFold){
+        btnFold.disabled = !myTurn; btnFold.onclick = ()=>{ playerFold(); };
       }
-
-      const me = state.players[0];
-      meChipsEl.textContent = me.chips;
-      meBetEl.textContent = me.betThisRound;
-
-      // 行为按钮可用性
-      const myTurn = state.inRound && state.players[state.turnIndex].isHuman && !state.showdown;
-      document.getElementById('btnFold').disabled = !myTurn;
-      document.getElementById('btnCall').disabled = !myTurn;
-      document.getElementById('btnRaise').disabled = !(myTurn && state.raises < cfg.maxRaises);
-
-      document.getElementById('btnNext').style.display = (!state.inRound && !state.showdown) ? 'inline-block' : (state.showdown && !state.inRound ? 'inline-block':'none');
+      if (btnCall){
+        btnCall.disabled = !myTurn; btnCall.onclick = ()=>{ playerCall(); };
+      }
+      if (btnRaise){
+        btnRaise.disabled = !(myTurn && state.raisesThisRound < cfg.maxRaisesPerRound);
+        btnRaise.onclick = ()=>{ playerRaise(); };
+      }
+      if (btnShow){
+        btnShow.disabled = !(state.inHand && !state.showdown); // 随时可点开牌，只要在牌局中
+        btnShow.onclick = ()=>{ showdown('玩家主动开牌'); };
+      }
+      if (btnNext){
+        btnNext.style.display = (!state.inHand && state.showdown) ? 'inline-block' : 'none';
+        btnNext.onclick = ()=>{ newHand(); };
+      }
     }
 
-    function showEval(p){
-      if (p.folded) return `<span style="color:var(--danger)">已弃牌</span>`;
-      const eva = evaluate3(p.hand);
-      return `<span>牌型：<b>${eva.name}</b></span>`;
+    function canHumanAct(){
+      return state.inHand && !state.showdown &&
+             !state.players[0].folded &&
+             state.turnIndex===0;
     }
 
     /***********************
-     * 回合推进
+     * 下注/行动核心
      ***********************/
-    function nextTurn(){
-      // 所有人都已跟到相同金额？或只剩 1 人存活？ -> 进入摊牌
-      const alive = alivePlayers();
-      if (alive.length === 1){
-        // 提前结束：唯一存活者直接赢
-        winnerTake(alive[0], true);
-        return;
-      }
-      const target = Math.max(...alive.map(p=>p.betThisRound));
-      const allMatched = alive.every(p=>p.betThisRound === target);
-      if (allMatched){
-        // 摊牌
-        showdown();
-        return;
-      }
-
-      // 顺时针找下一位未弃牌者
-      const n = state.players.length;
-      for (let step=1; step<=n; step++){
-        const idx = (state.turnIndex + step) % n;
-        const cand = state.players[idx];
-        if (!cand.folded){
-          state.turnIndex = idx;
-          break;
-        }
-      }
-      render();
-      maybeAutoTurn();
-    }
-
-    function maybeAutoTurn(){
-      const p = state.players[state.turnIndex];
-      if (!state.inRound || state.showdown) return;
-      if (!p.isHuman){
-        setTimeout(()=>botAct(p), 600);
-      }
-    }
-
     function payToPot(p, amount){
       const pay = Math.max(0, Math.min(amount, p.chips));
       p.chips -= pay;
       p.betThisRound += pay;
+      p.totalBet += pay;
       state.pot += pay;
       return pay;
     }
 
-    /***********************
-     * 玩家操作
-     ***********************/
-    document.getElementById('btnFold').addEventListener('click', ()=>{
-      if (!state.inRound) return;
-      const me = state.players[0];
-      me.folded = true;
-      log(`你选择：弃牌`);
-      nextTurn();
-    });
-
-    document.getElementById('btnCall').addEventListener('click', ()=>{
-      if (!state.inRound) return;
-      const me = state.players[0];
+    function playerFold(){
+      const me=state.players[0];
+      me.folded = true; log(`你选择：弃牌`);
+      advanceTurn();
+    }
+    function playerCall(){
+      const me=state.players[0];
       const need = Math.max(0, state.currentBet - me.betThisRound);
       const paid = payToPot(me, need);
       log(`你选择：跟注 ￥${paid}`);
-      nextTurn();
-    });
-
-    document.getElementById('btnRaise').addEventListener('click', ()=>{
-      if (!state.inRound || state.raises >= cfg.maxRaises) return;
-      const me = state.players[0];
+      advanceTurn();
+    }
+    function playerRaise(){
+      const me=state.players[0];
+      if (state.raisesThisRound >= cfg.maxRaisesPerRound) return;
       const need = Math.max(0, state.currentBet - me.betThisRound);
       const paidCall = payToPot(me, need);
       state.currentBet += cfg.unitBet;
-      state.raises += 1;
+      state.raisesThisRound += 1;
       const paidRaise = payToPot(me, cfg.unitBet);
-      log(`你选择：先跟 ￥${paidCall} 再加注 ￥${paidRaise}（当前需跟注=${state.currentBet}）`);
-      nextTurn();
-    });
-
-    document.getElementById('btnNext').addEventListener('click', ()=>{
-      newRound();
-    });
-
-    /***********************
-     * 机器人 AI（极简启发式）
-     ***********************/
-    function botStrength(p){
-      const eva = evaluate3(p.hand);
-      // 归一化强度：大类*100 + 次级比较
-      let minor = 0;
-      if (eva.scoreVec && eva.scoreVec.length){
-        // 把 kicker 合成一个值（不是完全精确，但足够用于简单决策）
-        minor = eva.scoreVec.reduce((acc,v,i)=>acc + v*Math.pow(0.01, i), 0);
-      }
-      return eva.cat*100 + minor;
+      log(`你：先跟 ￥${paidCall} 再加注 ￥${paidRaise}（当前需跟注=${state.currentBet}）`);
+      advanceTurn();
     }
 
-    function botAct(p){
-      // 需要跟到的金额差
-      const need = Math.max(0, state.currentBet - p.betThisRound);
-      const S = botStrength(p);
+    function advanceTurn(){
+      // 是否只剩一人存活 → 立即胜出
+      const alive = alivePlayers();
+      if (alive.length===1){ return winByFold(alive[0]); }
 
-      // 简易策略阈值
-      const STRONG = 500; // ~顺子/同花以上
-      const MEDIUM = 250; // ~对子
-      const canRaise = state.raises < cfg.maxRaises && p.chips > need + cfg.unitBet;
+      // 一轮是否结束：所有未弃牌者都跟到同额
+      const target = Math.max(...alive.map(p=>p.betThisRound));
+      const allMatched = alive.every(p=>p.betThisRound===target);
+      if (allMatched){
+        // 进入下一轮 or 结束（如果达到 maxRounds）
+        if (state.roundIndex >= cfg.maxRounds){
+          return showdown('达到最大轮次，强制开牌');
+        }else{
+          // 清理进入下一轮
+          state.roundIndex += 1;
+          state.raisesThisRound = 0;
+          state.currentBet = 0;
+          for (const p of alive){ p.betThisRound = 0; }
+          log(`—— 进入第 ${state.roundIndex} 轮 ——`);
+          // 新一轮从下一位行动者开始
+        }
+      }
+
+      // 顺时针找下一位
+      const n=state.players.length;
+      for (let step=1; step<=n; step++){
+        const idx=(state.turnIndex+step)%n;
+        const cand=state.players[idx];
+        if (!cand.folded){ state.turnIndex=idx; break; }
+      }
+      render();
+      maybeAutoTurn();
+    }
+
+    /***********************
+     * 机器人行为（含随机开牌）
+     ***********************/
+    function botStrength(p){
+      const eva=evaluate3(p.hand);
+      let minor=0;
+      if (eva.scoreVec?.length) minor=eva.scoreVec.reduce((acc,v,i)=>acc+v*Math.pow(0.01,i),0);
+      return eva.cat*100+minor;
+    }
+    function botAct(p){
+      if (!state.inHand || state.showdown || p.folded) return;
+
+      // 随轮次增大的开牌概率（机器人可主动发起摊牌）
+      const base = Math.min(0.05 + 0.03*(state.roundIndex-1), 0.5); // 5% 起，逐轮 +3%，最多 50%
+      if (Math.random() < base){
+        return showdown(`${p.name} 发起开牌`);
+      }
+
+      // 普通跟/加/弃
+      const need = Math.max(0, state.currentBet - p.betThisRound);
+      const S=botStrength(p);
+      const STRONG=500, MEDIUM=250;
+      const canRaise = state.raisesThisRound < cfg.maxRaisesPerRound && p.chips > need + cfg.unitBet;
 
       if (S >= STRONG){
-        // 强牌：优先加注
         if (canRaise){
-          // 先补跟
           payToPot(p, need);
           state.currentBet += cfg.unitBet;
-          state.raises += 1;
+          state.raisesThisRound += 1;
           payToPot(p, cfg.unitBet);
           log(`${p.name}：加注（当前需跟注=${state.currentBet}）`);
         }else{
-          const paid = payToPot(p, need);
+          const paid=payToPot(p, need);
           log(`${p.name}：跟注 ￥${paid}`);
         }
       }else if (S >= MEDIUM){
-        // 中等牌：多数跟，偶尔加注
-        if (canRaise && Math.random() < 0.25){
+        if (canRaise && Math.random()<0.25){
           payToPot(p, need);
           state.currentBet += cfg.unitBet;
-          state.raises += 1;
+          state.raisesThisRound += 1;
           payToPot(p, cfg.unitBet);
           log(`${p.name}：加注（当前需跟注=${state.currentBet}）`);
         }else{
-          const paid = payToPot(p, need);
+          const paid=payToPot(p, need);
           log(`${p.name}：跟注 ￥${paid}`);
         }
       }else{
-        // 弱牌：多数跟，小概率弃牌
-        if (need>0 && Math.random() < 0.5){
-          p.folded = true;
-          log(`${p.name}：弃牌`);
+        if (need>0 && Math.random()<0.5){
+          p.folded=true; log(`${p.name}：弃牌`);
         }else{
-          const paid = payToPot(p, need);
+          const paid=payToPot(p, need);
           log(`${p.name}：跟注 ￥${paid}`);
         }
       }
-      nextTurn();
+      advanceTurn();
+    }
+
+    function maybeAutoTurn(){
+      const p=state.players[state.turnIndex];
+      if (p && !p.isHuman) setTimeout(()=>botAct(p), 600);
     }
 
     /***********************
      * 摊牌 & 结算
      ***********************/
-    function showdown(){
-      state.inRound = false;
-      state.showdown = true;
+    function showdown(reason='开牌'){
+      if (!state.inHand || state.showdown) return;
+      state.inHand=false; state.showdown=true;
+      log(`【${reason}】进入摊牌`);
 
-      const alive = alivePlayers();
-      let best = null, winners = [];
+      const alive=alivePlayers();
+      let best=null, winners=[];
       for(const p of alive){
-        const eva = evaluate3(p.hand);
-        if (!best){
-          best = {p, eva};
-          winners = [p];
-        }else{
-          const cmp = compareHands(eva, best.eva);
-          if (cmp>0){ best = {p, eva}; winners = [p]; }
+        const eva=evaluate3(p.hand);
+        if (!best){ best={p,eva}; winners=[p]; }
+        else{
+          const cmp=compareHands(eva,best.eva);
+          if (cmp>0){ best={p,eva}; winners=[p]; }
           else if (cmp===0){ winners.push(p); }
         }
       }
-
-      if (winners.length === 1){
+      if (winners.length===1){
         winners[0].chips += state.pot;
-        log(`【摊牌】赢家：${winners[0].name}（${evaluate3(winners[0].hand).name}），赢得 ￥${state.pot}`);
+        log(`赢家：${winners[0].name}（${evaluate3(winners[0].hand).name}），赢得 ￥${state.pot}`);
       }else{
-        const share = Math.floor(state.pot / winners.length);
-        for(const w of winners) w.chips += share;
-        log(`【摊牌】平分底池：${winners.map(w=>w.name).join('、')} 各得 ￥${share}`);
+        const share=Math.floor(state.pot/winners.length);
+        for(const w of winners) w.chips+=share;
+        log(`平分底池：${winners.map(w=>w.name).join('、')} 各得 ￥${share}`);
       }
-      state.pot = 0;
+      state.pot=0;
       render();
-      document.getElementById('btnNext').style.display = 'inline-block';
+      // 显示“下一局”
+      const btnNext = document.getElementById('btnNext');
+      if (btnNext) btnNext.style.display='inline-block';
     }
 
-    function winnerTake(p, byFold){
-      state.inRound = false;
-      state.showdown = true;
+    function winByFold(p){
+      state.inHand=false; state.showdown=true;
       p.chips += state.pot;
-      log(byFold ? `其余玩家弃牌，${p.name} 直接赢得 ￥${state.pot}` : `${p.name} 获胜！`);
-      state.pot = 0;
+      log(`其余玩家弃牌，${p.name} 直接赢得 ￥${state.pot}`);
+      state.pot=0;
       render();
-      document.getElementById('btnNext').style.display = 'inline-block';
+      const btnNext=document.getElementById('btnNext');
+      if (btnNext) btnNext.style.display='inline-block';
     }
 
     /***********************
@@ -543,13 +573,16 @@
      ***********************/
     document.getElementById('ante').textContent = cfg.ante;
     document.getElementById('unitBet').textContent = cfg.unitBet;
-    document.getElementById('maxRaises').textContent = cfg.maxRaises;
+    document.getElementById('maxRaises').textContent = cfg.maxRaisesPerRound;
+    document.getElementById('maxRounds').textContent = cfg.maxRounds;
 
     setupPlayers();
-    newRound();
+    newHand();
   </script>
 </body>
 </html>
+
+
 
 
 
