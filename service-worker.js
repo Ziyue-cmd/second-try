@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-globals */
 // 版本号每次上线改一下，确保用户拿到最新缓存
-const SW_VERSION = 'v1.0.7';
+const SW_VERSION = 'v1.0.8';
 const CACHE_NAME = `tank-game-${SW_VERSION}`;
 const CORE_ASSETS = [
   './',
@@ -77,6 +77,7 @@ self.addEventListener('fetch', (event) => {
 
 // 可选：后台消息或通知
 // self.addEventListener('push', (e)=>{ ... });
+
 
 
 
