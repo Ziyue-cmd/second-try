@@ -25,116 +25,131 @@
       height:100%;margin:0;background:var(--bg);color:var(--text);
       font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
     }
-    .wrap{max-width:1200px;margin:0 auto;padding:10px;display:grid;gap:10px}
+    .wrap{max-width:1200px;margin:0 auto;padding:8px;display:grid;gap:8px}
 
+    /* 顶栏 */
     .topbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-    .badge{padding:3px 8px;border:1px solid var(--border);border-radius:10px;background:#0f172a;font-size:13px}
+    .badge{padding:3px 8px;border:1px solid var(--border);border-radius:10px;background:#0f172a;font-size:12px}
     .pot{font-weight:700;color:var(--accent)}
     .turn{color:var(--warn);font-weight:700}
+    .ghost{opacity:.75}
+    .btn{padding:6px 10px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer;font-size:12px}
 
+    /* 牌桌与座位：更小更紧凑 */
     .table{
-      position:relative;height:580px;border:1px solid var(--border);border-radius:16px;
+      position:relative;height:520px;border:1px solid var(--border);border-radius:16px;
       background: radial-gradient(ellipse at center,#0f2a2a 0%, var(--felt) 60%, #0b1328 100%);
       overflow:hidden;
     }
     .seats{position:absolute; inset:0;}
     .center-pot{
       position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-      background:rgba(15,23,42,.8); border:1px solid var(--border); border-radius:12px;
-      padding:6px 12px; font-size:14px; color:#e5e7eb; box-shadow:0 6px 16px rgba(0,0,0,.25);
+      background:rgba(15,23,42,.85); border:1px solid var(--border); border-radius:10px;
+      padding:4px 10px; font-size:13px; color:#e5e7eb; box-shadow:0 6px 16px rgba(0,0,0,.25);
     }
 
     .seat{
-      position:absolute;width:170px;max-width:30vw;border:1px solid var(--border);
+      position:absolute;width:150px;max-width:26vw;border:1px solid var(--border);
       border-radius:10px;background:var(--panel);padding:6px;box-shadow:0 6px 16px rgba(0,0,0,.2)
     }
-    .seat h3{margin:0 0 4px;font-size:14px;display:flex;align-items:center;gap:6px}
+    .seat h3{margin:0 0 4px;font-size:12px;display:flex;align-items:center;gap:6px}
     .chips{font-weight:700;color:var(--ok)}
     .folded{opacity:.55;filter:grayscale(.2)}
     .acting{outline:2px solid var(--warn)}
 
-    .pos-top    {left:50%; top:4%;   transform:translate(-50%,0);}
-    .pos-tr     {left:79%; top:15%;  transform:translate(-50%,0);}
-    .pos-right  {left:92%; top:50%;  transform:translate(-50%,-50%);}
-    .pos-br     {left:79%; top:82%;  transform:translate(-50%,-50%);}
-    .pos-bottom {left:50%; top:96%;  transform:translate(-50%,-100%);}
-    .pos-bl     {left:21%; top:82%;  transform:translate(-50%,-50%);}
-    .pos-left   {left:8%;  top:50%;  transform:translate(-50%,-50%);}
-    .pos-tl     {left:21%; top:15%;  transform:translate(-50%,0);}
+    /* 8 座位布局（更紧凑坐标） */
+    .pos-top    {left:50%; top:3%;   transform:translate(-50%,0);}
+    .pos-tr     {left:78%; top:12%;  transform:translate(-50%,0);}
+    .pos-right  {left:94%; top:50%;  transform:translate(-50%,-50%);}
+    .pos-br     {left:78%; top:86%;  transform:translate(-50%,-50%);}
+    .pos-bottom {left:50%; top:97%;  transform:translate(-50%,-100%);}
+    .pos-bl     {left:22%; top:86%;  transform:translate(-50%,-50%);}
+    .pos-left   {left:6%;  top:50%;  transform:translate(-50%,-50%);}
+    .pos-tl     {left:22%; top:12%;  transform:translate(-50%,0);}
 
-    .cards{display:flex;gap:6px;margin:4px 0 2px}
+    .cards{display:flex;gap:4px;margin:4px 0 2px}
     .card{
-      width:40px;height:58px;border-radius:8px;border:1px solid #374151;display:grid;place-items:center;
-      background:#0b1328;font-weight:700;font-size:13px
+      width:34px;height:48px;border-radius:6px;border:1px solid #374151;display:grid;place-items:center;
+      background:#0b1328;font-weight:700;font-size:11px
     }
     .card.face{background:#f8fafc;color:#0b1020;border-color:#cbd5e1}
-    .card small{font-size:10px}
+    .card small{font-size:9px}
     .suit-red{color:#ef4444}
 
     .actions{margin-top:6px;display:flex;gap:6px;flex-wrap:wrap}
     button{
-      padding:6px 10px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer;font-size:13px
+      padding:6px 10px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#e5e7eb;cursor:pointer;font-size:12px
     }
     button.primary{background:#1d4ed8;border-color:#1e40af}
     button.danger{background:#991b1b;border-color:#7f1d1d}
     button:disabled{opacity:.5;cursor:not-allowed}
 
-    .sidebar{display:grid;gap:10px}
-    .panel{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:10px}
-    .panel h4{margin:.2em 0 .6em;font-size:14px}
-    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding:4px 0;font-size:13px}
-    .log{height:160px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:12px;line-height:1.5}
+    /* 抽屉侧栏（隐藏菜单） */
+    .drawer{
+      position:fixed;right:0;top:0;height:100vh;width:320px;max-width:90vw;
+      background:var(--panel);border-left:1px solid var(--border);box-shadow:-10px 0 24px rgba(0,0,0,.35);
+      transform:translateX(100%);transition:transform .25s ease;z-index:50;padding:12px;display:grid;gap:10px
+    }
+    .drawer.open{transform:translateX(0)}
+    .panel{border:1px solid var(--border);border-radius:10px;background:#132033;padding:10px}
+    .panel h4{margin:.2em 0 .6em;font-size:13px}
+    .kv{display:flex;justify-content:space-between;border-bottom:1px dashed #223049;padding:4px 0;font-size:12px}
+    .log{height:260px;overflow:auto;border:1px solid var(--border);border-radius:10px;background:#0f172a;padding:8px;font-size:12px;line-height:1.5}
     .log p{margin:.2em 0;color:#c0cad6}
 
     @media (max-width:980px){
-      .wrap{max-width:100%;padding:8px}
-      .table{height:540px}
-      .seat{width:160px}
-      .card{width:36px;height:54px}
+      .wrap{max-width:100%;padding:6px}
+      .table{height:480px}
+      .seat{width:138px}
+      .card{width:32px;height:46px}
     }
     @media (max-width:720px){
-      .seat{width:150px}
-      .card{width:34px;height:52px;font-size:12px}
-      .card small{font-size:9px}
+      .seat{width:130px}
+      .card{width:30px;height:44px;font-size:10px}
+      .card small{font-size:8px}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="topbar">
+      <button id="btnMenu" class="btn">菜单</button>
       <span class="badge">底注: <b id="ante">10</b></span>
-      <span class="badge">本轮底注(盲): <b id="roundBase">10</b></span>
-      <span class="badge">底注上限(盲): <b id="maxBase">20</b>（看牌=×2）</span>
+      <span class="badge">本轮盲: <b id="roundBase">10</b></span>
+      <span class="badge">盲上限: <b id="maxBase">20</b>（看牌=×2）</span>
       <span class="badge">闷注上限(轮): <b id="maxRounds">30</b></span>
       <span class="badge">轮到: <span id="turnName" class="turn">-</span></span>
-      <span class="badge">当前轮次: <b id="roundNow">1</b></span>
+      <span class="badge ghost">当前轮: <b id="roundNow">1</b></span>
     </div>
 
     <div class="table">
       <div class="seats" id="seats"></div>
+      <!-- 中央仅显示底池 -->
       <div class="center-pot">底池（Pot）：<span class="pot" id="pot">0</span></div>
     </div>
-
-    <div class="sidebar">
-      <div class="panel">
-        <h4>局面</h4>
-        <div class="kv"><span>底池</span><b id="statPot">0</b></div>
-        <div class="kv"><span>本轮底注(盲)</span><b id="statRoundBase">10</b></div>
-        <div class="kv"><span>当前轮次</span><b id="statRound">1</b></div>
-        <div class="kv"><span>存活玩家</span><b id="statAlive">8</b></div>
-      </div>
-      <div class="panel">
-        <h4>你（玩家）</h4>
-        <div class="kv"><span>筹码</span><b id="meChips">0</b></div>
-        <div class="kv"><span>你本轮已下</span><b id="meBet">0</b></div>
-        <div class="kv"><span>状态</span><b id="meState">闷</b></div>
-      </div>
-      <div class="panel">
-        <h4>日志</h4>
-        <div class="log" id="log"></div>
-      </div>
-    </div>
   </div>
+
+  <!-- 侧栏抽屉：默认隐藏，点击“菜单”按钮展开 -->
+  <aside class="drawer" id="drawer">
+    <div class="panel">
+      <h4>局面</h4>
+      <div class="kv"><span>底池</span><b id="statPot">0</b></div>
+      <div class="kv"><span>本轮盲</span><b id="statRoundBase">10</b></div>
+      <div class="kv"><span>当前轮</span><b id="statRound">1</b></div>
+      <div class="kv"><span>存活玩家</span><b id="statAlive">8</b></div>
+    </div>
+    <div class="panel">
+      <h4>你（玩家）</h4>
+      <div class="kv"><span>筹码</span><b id="meChips">0</b></div>
+      <div class="kv"><span>你本轮已下</span><b id="meBet">0</b></div>
+      <div class="kv"><span>状态</span><b id="meState">闷</b></div>
+    </div>
+    <div class="panel">
+      <h4>日志</h4>
+      <div class="log" id="log"></div>
+    </div>
+    <button id="btnClose" class="btn">关闭</button>
+  </aside>
 
   <script>
     /* ---------- 工具 & 牌面 ---------- */
@@ -168,8 +183,8 @@
     /* ---------- 配置 & 状态（闷/看牌 双倍注） ---------- */
     const cfg = {
       ante: 10,
-      startBase: 10,       // “盲底注”起点
-      maxBase: 20,         // 盲底注上限（看牌需求=盲×2，故总上限=40）
+      startBase: 10,       // 盲底注起点
+      maxBase: 20,         // 盲底注上限（看牌需×2，故玩家目标最多40）
       maxRounds: 30,       // 闷注上限（轮）
       startChips: 1000
     };
@@ -178,19 +193,22 @@
       deck: [],
       pot: 0,
       roundIndex: 1,
-      roundBase: cfg.startBase, // 当轮盲底注（看牌=×2）
+      roundBase: cfg.startBase, // 当轮盲
       turnIndex: 0,
       inHand: false,
       showdown: false
     };
 
-    /* ---------- DOM ---------- */
+    /* ---------- DOM & 抽屉 ---------- */
     const seatsEl=document.getElementById('seats'), logEl=document.getElementById('log');
     const potEl=document.getElementById('pot'), roundBaseEl=document.getElementById('roundBase'), maxBaseEl=document.getElementById('maxBase');
     const turnEl=document.getElementById('turnName'), roundNowEl=document.getElementById('roundNow');
     const statPotEl=document.getElementById('statPot'), statRoundBaseEl=document.getElementById('statRoundBase');
     const statAliveEl=document.getElementById('statAlive'), statRoundEl=document.getElementById('statRound');
     const meChipsEl=document.getElementById('meChips'), meBetEl=document.getElementById('meBet'), meStateEl=document.getElementById('meState');
+    const drawer=document.getElementById('drawer');
+    document.getElementById('btnMenu').onclick=()=>drawer.classList.add('open');
+    document.getElementById('btnClose').onclick=()=>drawer.classList.remove('open');
 
     function log(msg){const p=document.createElement('p');p.textContent=msg;logEl.appendChild(p);logEl.scrollTop=logEl.scrollHeight;}
 
@@ -201,7 +219,7 @@
         {id:1,name:'机器人B',pos:'pos-tr',    isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
         {id:2,name:'机器人C',pos:'pos-right', isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
         {id:3,name:'机器人D',pos:'pos-br',    isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
-        {id:4,name:'你(玩家)',pos:'pos-bottom',isHuman:true, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
+        {id:4,name:'你(玩家)',pos:'pos-bottom',isHuman:true,  chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
         {id:5,name:'机器人E',pos:'pos-bl',    isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
         {id:6,name:'机器人F',pos:'pos-left',  isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
         {id:7,name:'机器人G',pos:'pos-tl',    isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
@@ -220,22 +238,23 @@
     }
     const alivePlayers=()=>state.players.filter(p=>!p.folded && p.chips>=0);
 
-    /* ---------- 需求计算：看牌=底注×2 ---------- */
+    /* ---------- 需求计算：看牌=盲×2 ---------- */
     function targetFor(p){ return state.roundBase * (p.seen ? 2 : 1); }
     function needFor(p){ return Math.max(0, targetFor(p) - p.betThisRound); }
 
-    /* ---------- 渲染 ---------- */
+    /* ---------- 渲染（注意：机器人看牌后也不亮牌） ---------- */
     function seatHtml(p,acting){
-      const faceUp=p.seen||state.showdown||p.folded;
-      const cards=p.hand.map(c=> faceUp
+      // 只在【摊牌】或【弃牌】时展示机器人的牌；玩家自己看牌才亮自己的牌
+      const canSeeCards = p.isHuman ? (p.seen || state.showdown || p.folded) : (state.showdown || p.folded);
+      const cards=p.hand.map(c=> canSeeCards
         ? `<div class="card face ${isRed(c.suit)?'suit-red':''}">${RANK_LABEL(c.rank)}<small>${c.suit}</small></div>`
         : `<div class="card">🂠</div>`).join('');
       const stateTag = p.seen ? '看' : '闷';
       return `
         <div class="seat ${p.pos} ${p.folded?'folded':''} ${acting?'acting':''}">
-          <h3>${p.name} <span class="chips">￥${p.chips}</span> <span style="margin-left:auto;font-size:12px;color:#9fb0c1">[${stateTag}]</span> ${acting?'<span class="turn">（行动）</span>':''}</h3>
+          <h3>${p.name} <span class="chips">￥${p.chips}</span> <span style="margin-left:auto;font-size:11px;color:#9fb0c1">[${stateTag}]</span> ${acting?'<span class="turn">（行动）</span>':''}</h3>
           <div class="cards">${cards}</div>
-          <div style="font-size:12px;color:#9fb0c1;display:flex;gap:8px">
+          <div style="font-size:11px;color:#9fb0c1;display:flex;gap:8px">
             <span>已下：￥${p.betThisRound}</span><span>需至：￥${targetFor(p)}</span>
           </div>
           ${p.isHuman?humanActionsHtml():''}
@@ -246,8 +265,8 @@
         <button id="btnSee">看牌</button>
         <button id="btnFold" class="danger">弃牌</button>
         <button id="btnCall">跟注</button>
-        <button id="btnRaise" class="primary">加注(×2盲)</button>
-        <button id="btnShowdown" title="只剩一名对手时可开牌">开牌</button>
+        <button id="btnRaise" class="primary">加注(盲×2)</button>
+        <button id="btnShowdown" title="仅剩一名对手时可开牌">开牌</button>
         <button id="btnNext" style="display:none;">下一局</button>
       </div>`;
     }
@@ -284,12 +303,12 @@
       if(btnFold){ btnFold.disabled=!myTurn; btnFold.onclick=()=>playerFold(); }
       if(btnCall){ btnCall.disabled=!myTurn; btnCall.onclick=()=>playerCall(); }
       if(btnRaise){
-        // 只能把盲底注从 10 提到 20（看牌即等价 20->40），超过就禁用
+        // 只能把盲从 10 提到 20 一次
         btnRaise.disabled=!(myTurn && state.roundBase < cfg.maxBase);
         btnRaise.onclick=()=>playerRaise();
       }
       if(btnShow){
-        // 只能在“只剩你和 1 名对手”时开牌
+        // 只剩你与 1 名对手时才允许开牌
         btnShow.disabled=!(state.inHand && !state.showdown && alive.length===2 && myTurn);
         btnShow.onclick=()=>showdown('玩家开牌');
       }
@@ -307,7 +326,7 @@
       if(me.seen) return;
       me.seen=true;
       log('你选择：看牌（之后你的跟注=盲×2）');
-      render(); // 立刻刷新显示明牌
+      render(); // 刷新显示明牌（只你可见）
     }
 
     function playerFold(){ const me=state.players[4]; me.folded=true; log('你选择：弃牌'); advanceTurn(); }
@@ -316,24 +335,24 @@
       const me=state.players[4];
       const need=needFor(me);
       const paid=payToPot(me,need);
-      log(`你选择：跟注，支付 ￥${paid}（盲=${state.roundBase}，你的目标=${targetFor(me)}）`);
+      log(`你：跟注 ￥${paid}（盲=${state.roundBase}，你的目标=${targetFor(me)}）`);
       advanceTurn();
     }
 
     function playerRaise(){
       const me=state.players[4];
       if(state.roundBase>=cfg.maxBase){ return playerCall(); }
-      // “主动闷20”：如果你是闷且把盲从10抬到20，则你目标仍=盲(20)*1=20；若之后再看牌，你的目标将变为40
-      const needCall = needFor(me); // 先补到当前自己的目标（避免欠账）
+      // 先补齐当前目标
+      const needCall = needFor(me);
       const paidCall = payToPot(me, needCall);
-      const newBase = Math.min(state.roundBase*2, cfg.maxBase);
-      state.roundBase = newBase;
-      log(`你：先补 ￥${paidCall}，把盲底注提升至 ￥${state.roundBase}${me.seen?'（你看牌，目标=盲×2）':''}`);
-      // 盲变化后，若你的 betThisRound < 新目标，则再补
+      // 抬盲（10->20）
+      state.roundBase = Math.min(state.roundBase*2, cfg.maxBase);
+      log(`你：先补 ￥${paidCall}，把盲提升至 ￥${state.roundBase}${me.seen?'（你看牌，目标=盲×2）':''}`);
+      // 盲变化后，如未达新目标，再补
       const needAfter = needFor(me);
       if(needAfter>0){
         const paidRaise = payToPot(me, needAfter);
-        log(`你：为满足新目标再补 ￥${paidRaise}（你的新目标=${targetFor(me)}）`);
+        log(`你：为满足新目标再补 ￥${paidRaise}（新目标=${targetFor(me)}）`);
       }
       advanceTurn();
     }
@@ -348,7 +367,7 @@
       const alive=alivePlayers();
       if(alive.length===1) return winByFold(alive[0]);
 
-      // 当所有未弃牌者都补到各自目标 → 进入下一轮（盲恢复为 10；每人本轮下注清零）
+      // 所有人都补到自己的目标 => 下一轮（盲重置为10）
       if(allMatched()){
         if(state.roundIndex >= cfg.maxRounds){
           return showdown('达到闷注上限，强制开牌');
@@ -356,7 +375,7 @@
         state.roundIndex += 1;
         state.roundBase = cfg.startBase;
         for(const p of alive) p.betThisRound = 0;
-        log(`—— 进入第 ${state.roundIndex} 轮（盲重置为 ￥${state.roundBase}；看牌者目标=￥${state.roundBase*2}）——`);
+        log(`—— 进入第 ${state.roundIndex} 轮（盲重置 ￥${state.roundBase}；看牌者目标=￥${state.roundBase*2}）——`);
       }
 
       // 顺时针至下一位未弃牌者
@@ -368,11 +387,17 @@
       render(); maybeAutoTurn();
     }
 
-    /* ---------- 机器人逻辑（闷/看牌） ---------- */
+    /* ---------- 机器人逻辑（AI 决策规则） ---------- */
+    // 规则摘要：
+    // 1) botMaybeSee：是否看牌（概率随轮次/压力上升）
+    // 2) need = 需要补齐到目标（闷=盲，看=盲×2）
+    // 3) 若 S≥STRONG 且可抬盲(10->20)：先补齐，再抬盲，再补新的目标
+    // 4) 否则：S≥MEDIUM 或 need=0 => 跟；否则 40% 弃牌（或少量仍跟）
+    // 5) 仅剩两人时，强牌 25% 主动开牌
     function botStrength(p){
       if(!p.seen){
         // 未看牌：信息不足，用温和随机强度（鼓励闷注与小额跟注）
-        return 200 + Math.random()*100; // 200~300 之间
+        return 200 + Math.random()*100; // 200~300
       }
       const eva=evaluate3(p.hand); let minor=0; if(eva.scoreVec?.length) minor=eva.scoreVec.reduce((acc,v,i)=>acc+v*Math.pow(0.01,i),0);
       return eva.cat*100+minor; // 看牌后按真实强度
@@ -380,44 +405,36 @@
 
     function botMaybeSee(p){
       if(p.seen||p.folded) return;
-      // 简单策略：轮数增加、或需要补的金额较大时，逐步提高看牌概率
-      const pressure = needFor(p) / 20; // 0~2 左右
-      const baseProb = Math.min(0.10 + 0.03*(state.roundIndex-1) + 0.10*pressure, 0.6);
-      if(Math.random()<baseProb){
-        p.seen=true;
-        log(`${p.name}：看牌`);
-      }
+      const need=needFor(p);
+      const pressure = need / 20; // 0~2 左右
+      const baseProb = Math.min(0.08 + 0.03*(state.roundIndex-1) + 0.10*pressure, 0.55);
+      if(Math.random()<baseProb){ p.seen=true; log(`${p.name}：看牌`); }
     }
 
     function botAct(p){
       if(!state.inHand||state.showdown||p.folded) return;
-
-      // 只有当场上只剩2人时，机器人才会考虑“开牌”
       const alive = alivePlayers();
       const canShow = alive.length===2;
 
-      // 决策顺序：是否看牌 -> 跟/加/弃 -> 若只剩二人，根据强度少量概率开牌
+      // 可能选择看牌
       botMaybeSee(p);
 
       const need=needFor(p);
-      const S=botStrength(p);        // 200~300(闷) / 真强度(看)
-      const STRONG=520, MEDIUM=260;  // 看牌后强弱阈值；闷状态下通常落在 MEDIUM 附近
+      const S=botStrength(p);
+      const STRONG=520, MEDIUM=260;
 
-      // 能否把盲从10抬到20（抬盲后，看牌者目标=40，闷者目标=20）
+      // 抬盲机会（10->20，仅一次）
       const canRaiseBase = state.roundBase < cfg.maxBase;
       if(S>=STRONG && canRaiseBase){
-        // 先补到当前自己的目标
-        payToPot(p, need);
-        // 抬盲到 20
-        state.roundBase = cfg.maxBase;
-        log(`${p.name}：把盲底注提升至 ￥${state.roundBase}${p.seen?'（其目标=￥40）':'（其目标=￥20）'}`);
-        // 若抬盲后自身未达新目标，则继续补
+        payToPot(p, need); // 先补齐当前目标
+        state.roundBase = cfg.maxBase; // 抬盲
+        log(`${p.name}：把盲提升至 ￥${state.roundBase}${p.seen?'（其目标=￥40）':'（其目标=￥20）'}`);
         const needAfter = needFor(p);
         if(needAfter>0){ payToPot(p, needAfter); }
         return advanceTurn();
       }
 
-      // 一般跟注/弃牌
+      // 跟 / 弃
       if(S>=MEDIUM || need===0){
         const paid=payToPot(p,need); log(`${p.name}：跟注 ￥${paid}`);
       }else{
@@ -425,14 +442,14 @@
         else{ const paid=payToPot(p,need); log(`${p.name}：跟注 ￥${paid}`); }
       }
 
-      // 只剩两人时，强牌小概率主动开牌
+      // 二人对决：强牌小概率主动开牌
       if(canShow && S>=STRONG && Math.random()<0.25){
         return showdown(`${p.name} 发起开牌`);
       }
       advanceTurn();
     }
 
-    function maybeAutoTurn(){ const p=state.players[state.turnIndex]; if(p && !p.isHuman) setTimeout(()=>botAct(p),600); }
+    function maybeAutoTurn(){ const p=state.players[state.turnIndex]; if(p && !p.isHuman) setTimeout(()=>botAct(p),560); }
 
     /* ---------- 摊牌 & 结果 ---------- */
     function showdown(reason='开牌'){
