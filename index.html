@@ -125,6 +125,7 @@
     </div>
   </div>
 
+  <!-- 侧栏抽屉 -->
   <aside class="drawer" id="drawer">
     <div class="panel">
       <h4>局面</h4>
@@ -147,6 +148,7 @@
   </aside>
 
   <script>
+    /* ---------- 工具 & 牌面 ---------- */
     const SUITS=['♠','♥','♦','♣'], RANKS=[2,3,4,5,6,7,8,9,10,11,12,13,14];
     const RANK_LABEL=v=>({11:'J',12:'Q',13:'K',14:'A'}[v]||String(v)), isRed=s=>(s==='♥'||s==='♦');
     const createDeck=()=>{const d=[];for(const s of SUITS)for(const r of RANKS)d.push({suit:s,rank:r});return d;};
@@ -172,26 +174,17 @@
       return{cat:1,scoreVec:ranks,name:'高牌'};
     }
     const compareHands=(a,b)=> a.cat!==b.cat ? a.cat-b.cat :
-      (()=>{for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){const av=a.scoreVec[i]??0,bv=b.scoreVec[i]??0; if(av!==bv) return av-bv;} return 0;})();
+      (()=>{for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){const av=a.scoreVec[i]??0,bv=b.scoreVec[i]??0;if(av!==bv)return av-bv;}return 0;})();
 
-    const cfg = {
-      ante: 10,
-      startBase: 10,
-      maxBase: 20,
-      maxRounds: 30,
-      startChips: 1000
-    };
+    /* ---------- 配置 & 状态 ---------- */
+    const cfg = { ante:10, startBase:10, maxBase:20, maxRounds:30, startChips:1000 };
     const state = {
-      players: [],
-      deck: [],
-      pot: 0,
-      roundIndex: 1,
-      roundBase: cfg.startBase,
-      turnIndex: 0,
-      inHand: false,
-      showdown: false
+      players: [], deck: [], pot: 0,
+      roundIndex: 1, roundBase: cfg.startBase,
+      turnIndex: 0, inHand: false, showdown: false
     };
 
+    /* ---------- DOM & 抽屉 ---------- */
     const seatsEl=document.getElementById('seats'), logEl=document.getElementById('log');
     const potEl=document.getElementById('pot'), roundBaseEl=document.getElementById('roundBase'), maxBaseEl=document.getElementById('maxBase');
     const turnEl=document.getElementById('turnName'), roundNowEl=document.getElementById('roundNow');
@@ -201,9 +194,9 @@
     const drawer=document.getElementById('drawer');
     document.getElementById('btnMenu').onclick=()=>drawer.classList.add('open');
     document.getElementById('btnClose').onclick=()=>drawer.classList.remove('open');
-
     function log(msg){const p=document.createElement('p');p.textContent=msg;logEl.appendChild(p);logEl.scrollTop=logEl.scrollHeight;}
 
+    /* ---------- 初始化 ---------- */
     function setupPlayers(){
       state.players=[
         {id:0,name:'机器人A',pos:'pos-top',   isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
@@ -216,6 +209,7 @@
         {id:7,name:'机器人G',pos:'pos-tl',    isHuman:false, chips:cfg.startChips,hand:[],folded:false,seen:false,betThisRound:0},
       ];
     }
+    const alivePlayers=()=>state.players.filter(p=>!p.folded && p.chips>=0);
 
     function newHand(){
       state.inHand=true; state.showdown=false; state.pot=0;
@@ -226,16 +220,14 @@
       log('—— 新一局开始（默认闷），收取盲底注 ——');
       render(); maybeAutoTurn();
     }
-    const alivePlayers=()=>state.players.filter(p=>!p.folded && p.chips>=0);
 
-    function targetFor(p){ return state.roundBase * (p.seen ? 2 : 1); }
-    function needFor(p){ return Math.max(0, targetFor(p) - p.betThisRound); }
+    /* ---------- 目标与需求：看牌=盲×2 ---------- */
+    const targetFor = p => state.roundBase * (p.seen ? 2 : 1);
+    const needFor   = p => Math.max(0, targetFor(p) - p.betThisRound);
 
+    /* ---------- 渲染（机器人看牌也不亮牌） ---------- */
     function seatHtml(p,acting){
-      // 关键：机器人看牌后也不亮牌；只有摊牌或弃牌才亮
-      const canSeeCards = p.isHuman
-        ? (p.seen || state.showdown || p.folded)   // 自己：看牌/摊牌/弃牌 才亮
-        : (state.showdown || p.folded);            // 机器人：仅 摊牌/弃牌 才亮
+      const canSeeCards = p.isHuman ? (p.seen || state.showdown || p.folded) : (state.showdown || p.folded);
       const cards=p.hand.map(c=> canSeeCards
         ? `<div class="card face ${isRed(c.suit)?'suit-red':''}">${RANK_LABEL(c.rank)}<small>${c.suit}</small></div>`
         : `<div class="card">🂠</div>`).join('');
@@ -297,29 +289,12 @@
       if(btnNext){ btnNext.style.display=(!state.inHand && state.showdown)?'inline-block':'none'; btnNext.onclick=()=>newHand(); }
     }
 
-    function payToPot(p,amount){
-      const pay=Math.max(0,Math.min(amount,p.chips));
-      p.chips-=pay; p.betThisRound+=pay; state.pot+=pay; return pay;
-    }
+    /* ---------- 行动 ---------- */
+    const payToPot=(p,amount)=>{const pay=Math.max(0,Math.min(amount,p.chips));p.chips-=pay;p.betThisRound+=pay;state.pot+=pay;return pay;};
 
-    function playerSee(){
-      const me=state.players[4];
-      if(me.seen) return;
-      me.seen=true;
-      log('你选择：看牌（之后你的跟注=盲×2）');
-      render();
-    }
-
+    function playerSee(){ const me=state.players[4]; if(me.seen) return; me.seen=true; log('你选择：看牌（之后你的跟注=盲×2）'); render(); }
     function playerFold(){ const me=state.players[4]; me.folded=true; log('你选择：弃牌'); advanceTurn(); }
-
-    function playerCall(){
-      const me=state.players[4];
-      const need=needFor(me);
-      const paid=payToPot(me,need);
-      log(`你：跟注 ￥${paid}（盲=${state.roundBase}，你的目标=${targetFor(me)}）`);
-      advanceTurn();
-    }
-
+    function playerCall(){ const me=state.players[4]; const need=needFor(me); const paid=payToPot(me,need); log(`你：跟注 ￥${paid}（盲=${state.roundBase}，你的目标=${targetFor(me)}）`); advanceTurn(); }
     function playerRaise(){
       const me=state.players[4];
       if(state.roundBase>=cfg.maxBase){ return playerCall(); }
@@ -328,26 +303,19 @@
       state.roundBase = Math.min(state.roundBase*2, cfg.maxBase);
       log(`你：先补 ￥${paidCall}，把盲提升至 ￥${state.roundBase}${me.seen?'（你看牌，目标=盲×2）':''}`);
       const needAfter = needFor(me);
-      if(needAfter>0){
-        const paidRaise = payToPot(me, needAfter);
-        log(`你：为满足新目标再补 ￥${paidRaise}（新目标=${targetFor(me)}）`);
-      }
+      if(needAfter>0){ const paidRaise = payToPot(me, needAfter); log(`你：为满足新目标再补 ￥${paidRaise}（新目标=${targetFor(me)}）`); }
       advanceTurn();
     }
 
-    function allMatched(){
-      const alive=alivePlayers();
-      return alive.every(p=>p.betThisRound === targetFor(p));
-    }
+    /* ---------- 回合推进 & 闷注上限 ---------- */
+    const allMatched=()=>alivePlayers().every(p=>p.betThisRound===targetFor(p));
 
     function advanceTurn(){
       const alive=alivePlayers();
       if(alive.length===1) return winByFold(alive[0]);
 
       if(allMatched()){
-        if(state.roundIndex >= cfg.maxRounds){
-          return showdown('达到闷注上限，强制开牌');
-        }
+        if(state.roundIndex >= cfg.maxRounds){ return showdown('达到闷注上限，强制开牌'); }
         state.roundIndex += 1;
         state.roundBase = cfg.startBase;
         for(const p of alive) p.betThisRound = 0;
@@ -362,14 +330,12 @@
       render(); maybeAutoTurn();
     }
 
+    /* ---------- 机器人逻辑 ---------- */
     function botStrength(p){
-      if(!p.seen){
-        return 200 + Math.random()*100; // 未看牌：弱信息，鼓励闷和小跟
-      }
+      if(!p.seen){ return 200 + Math.random()*100; } // 未看牌：弱信息，鼓励闷和小跟
       const eva=evaluate3(p.hand); let minor=0; if(eva.scoreVec?.length) minor=eva.scoreVec.reduce((acc,v,i)=>acc+v*Math.pow(0.01,i),0);
       return eva.cat*100+minor;
     }
-
     function botMaybeSee(p){
       if(p.seen||p.folded) return;
       const need=needFor(p);
@@ -377,7 +343,6 @@
       const baseProb = Math.min(0.08 + 0.03*(state.roundIndex-1) + 0.10*pressure, 0.55);
       if(Math.random()<baseProb){ p.seen=true; log(`${p.name}：看牌`); }
     }
-
     function botAct(p){
       if(!state.inHand||state.showdown||p.folded) return;
       const alive = alivePlayers();
@@ -411,9 +376,9 @@
       }
       advanceTurn();
     }
+    const maybeAutoTurn=()=>{ const p=state.players[state.turnIndex]; if(p && !p.isHuman) setTimeout(()=>botAct(p),560); };
 
-    function maybeAutoTurn(){ const p=state.players[state.turnIndex]; if(p && !p.isHuman) setTimeout(()=>botAct(p),560); }
-
+    /* ---------- 摊牌 & 结果 ---------- */
     function showdown(reason='开牌'){
       if(!state.inHand||state.showdown) return;
       state.inHand=false; state.showdown=true; log(`【${reason}】进入摊牌`);
@@ -431,27 +396,11 @@
       state.pot=0; render(); const btnNext=document.getElementById('btnNext'); if(btnNext) btnNext.style.display='inline-block';
     }
 
+    /* ---------- 启动 ---------- */
     document.getElementById('ante').textContent=cfg.ante;
     document.getElementById('maxBase').textContent=cfg.maxBase;
     document.getElementById('maxRounds').textContent=cfg.maxRounds;
 
-    function render(){/* filled later in newHand() */} // placeholder
-    function maybeAutoTurn(){/* placeholder */}
-    function alivePlayers(){/* placeholder */}
-  </script>
-
-  <script>
-    // 初始化并开局
-    function render(){} // 这段是为了避免上一段占位报错，真正的 render 定义在前面脚本中
-  </script>
-
-  <script>
-    // 重新把真实函数绑定（避免某些打包器合并时的顺序问题）
-    // 实际运行时上一段占位不会影响（这里是保证独立文件也稳）
-  </script>
-
-  <script>
-    // 启动
     setupPlayers();
     newHand();
   </script>
