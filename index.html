@@ -185,7 +185,7 @@
       return false;
     }
 
-    // 判断是不是“弱牌”：小于对5 或者纯高牌
+    // 判断是不是 “小于对5” / 高牌 的弱牌
     function isWeakAfterSee(hand){
       const eva = evaluate3(hand);
       if (eva.cat === 2 && eva.scoreVec[0] < 5) return true; // 对2~对4
@@ -243,7 +243,7 @@
         p.hand=[state.deck.pop(),state.deck.pop(),state.deck.pop()];
         p.folded=false; p.seen=false; p.betThisRound=0;
         p._strong = false;
-        p._weakFollowedOnce = false; // 新增：弱牌看完只跟一轮
+        p._weakFollowedOnce = false; // 弱牌看完只跟一轮
       }
       for(const p of alivePlayers()){
         const ante=Math.min(cfg.ante,p.chips);
@@ -431,7 +431,7 @@
 
       // 是否有人已经看牌（不含自己）
       const someoneElseSeen = state.players.some(pl => !pl.folded && pl.id !== p.id && pl.seen);
-      // 是否现在是“有人看牌并且在上盲”（说明场子已经变热）
+      // 是否“有人看牌并且在一直往上加盲”
       const tableAggressive = someoneElseSeen && state.roundBase > cfg.startBase;
 
       // ★ 强牌机器人：直接照旧
@@ -458,42 +458,40 @@
         return;
       }
 
-      // ★ 如果他已经看牌，但牌是弱的（< 对5 或高牌），就执行「只跟一轮」逻辑
+      // ★ 关键逻辑：已看牌 且 是“对5以下/高牌”的弱牌
       if (p.seen && isWeakAfterSee(p.hand)) {
-        // 如果全是闷注（没人看），那就当普通中牌打，继续跟
+        // 1) 全是闷注：没人看牌，就继续玩（可以一直跟）
         if (!someoneElseSeen) {
           const paid = payToPot(p, need);
-          if (paid > 0) log(`${p.name}：弱牌（场子还闷），继续跟注 ￥${paid}`);
+          if (paid > 0) log(`${p.name}：弱牌但大家都闷，继续跟注 ￥${paid}`);
           render(); checkPotCap();
           if (state.inHand) advanceTurn();
           return;
         }
 
-        // 如果已经有人看并且盲被抬上来了 -> 说明有人在主动上
+        // 2) 有人看牌并且一直上（盲>起始盲）：这时对5以下不够，直接弃
         if (tableAggressive) {
-          // 这个弱牌只允许跟一次
-          if (!p._weakFollowedOnce) {
-            const paid = payToPot(p, need);
-            if (paid > 0) log(`${p.name}：弱牌先跟一轮看看 ￥${paid}`);
-            p._weakFollowedOnce = true;
-            render(); checkPotCap();
-            if (state.inHand) advanceTurn();
-          } else {
-            // 第二次就弃
-            p.folded = true;
-            log(`${p.name}：看完发现对手在上，弱牌选择弃牌`);
-            render();
-            if (state.inHand) advanceTurn();
-          }
+          p.folded = true;
+          log(`${p.name}：发现有人看牌并持续加注，自己的牌力<对5，选择弃牌`);
+          render();
+          if (state.inHand) advanceTurn();
           return;
         }
 
-        // 有人看，但没抬盲（比如对手只是看了没动），就跟一次
-        const paid = payToPot(p, need);
-        if (paid > 0) log(`${p.name}：弱牌对看，跟注 ￥${paid}`);
-        p._weakFollowedOnce = true;
-        render(); checkPotCap();
-        if (state.inHand) advanceTurn();
+        // 3) 有人看牌但没有一直上（比如对面只看了一下、没加盲）
+        //    这种情况只跟一轮，第二次再遇到就弃
+        if (!p._weakFollowedOnce) {
+          const paid = payToPot(p, need);
+          if (paid > 0) log(`${p.name}：弱牌对看，先跟一轮 ￥${paid}`);
+          p._weakFollowedOnce = true;
+          render(); checkPotCap();
+          if (state.inHand) advanceTurn();
+        } else {
+          p.folded = true;
+          log(`${p.name}：弱牌已经跟过一轮，再遇到对看就弃牌`);
+          render();
+          if (state.inHand) advanceTurn();
+        }
         return;
       }
 
