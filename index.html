@@ -114,7 +114,7 @@
       <span class="badge">底注: <b id="ante">10</b></span>
       <span class="badge">本轮盲: <b id="roundBase">10</b></span>
       <span class="badge">盲上限: <b id="maxBase">20</b>（看牌=×2）</span>
-      <span class="badge">闷注上限(轮): <b id="maxRounds">30</b></span>
+      <span class="badge">底池上限: <b id="potCap">2000</b>（≥自动开牌）</span>
       <span class="badge">轮到: <span id="turnName" class="turn">-</span></span>
       <span class="badge ghost">当前轮: <b id="roundNow">1</b></span>
     </div>
@@ -176,17 +176,18 @@
     const compareHands=(a,b)=> a.cat!==b.cat ? a.cat-b.cat :
       (()=>{for(let i=0;i<Math.max(a.scoreVec.length,b.scoreVec.length);i++){const av=a.scoreVec[i]??0,bv=b.scoreVec[i]??0;if(av!==bv)return av-bv;}return 0;})();
 
-    // ★ 新增：给机器人判断强牌
+    // 给机器人判断强牌
     function isStrongHandForBot(hand){
       const eva = evaluate3(hand);
       const maxRank = Math.max(...hand.map(c => c.rank));
-      if (eva.cat >= 2) return true; // 对子以上都算强
-      if (maxRank >= 10) return true; // 有 10/J/Q/K/A
+      if (eva.cat >= 2) return true; // 对子以上
+      if (maxRank >= 10) return true; // 10/J/Q/K/A
       return false;
     }
 
     /* ---------- 配置 & 状态 ---------- */
-    const cfg = { ante:10, startBase:10, maxBase:20, maxRounds:30, startChips:1000 };
+    const POT_CAP = 2000;
+    const cfg = { ante:10, startBase:10, maxBase:20, startChips:1000 };
     const state = {
       players: [], deck: [], pot: 0,
       roundIndex: 1, roundBase: cfg.startBase,
@@ -220,6 +221,12 @@
     }
     const alivePlayers=()=>state.players.filter(p=>!p.folded && p.chips>=0);
 
+    function checkPotCap(){
+      if (state.inHand && state.pot >= POT_CAP) {
+        showdown('底池达到上限，自动开牌');
+      }
+    }
+
     function newHand(){
       state.inHand=true; state.showdown=false; state.pot=0;
       state.roundIndex=1; state.roundBase=cfg.startBase; state.turnIndex=0;
@@ -228,9 +235,14 @@
         p.hand=[state.deck.pop(),state.deck.pop(),state.deck.pop()];
         p.folded=false; p.seen=false; p.betThisRound=0; p._strong = false;
       }
-      for(const p of alivePlayers()){ const ante=Math.min(cfg.ante,p.chips); p.chips-=ante; state.pot+=ante; }
+      for(const p of alivePlayers()){
+        const ante=Math.min(cfg.ante,p.chips);
+        p.chips-=ante; state.pot+=ante;
+      }
       log('—— 新一局开始（默认闷），收取盲底注 ——');
-      render(); maybeAutoTurn();
+      render();
+      checkPotCap();
+      maybeAutoTurn();
     }
 
     /* ---------- 目标与需求：看牌=盲×2 ---------- */
@@ -239,11 +251,9 @@
 
     /* ---------- 渲染（机器人只有摊牌才亮） ---------- */
     function seatHtml(p,acting){
-      // 人类：看过牌 / 摊牌 / 自己弃牌可见
-      // 机器人：只有摊牌阶段可见
       const canSeeCards = p.isHuman
         ? (p.seen || state.showdown || p.folded)
-        : state.showdown;
+        : state.showdown;   // 摊牌阶段所有剩余玩家可见
 
       const cards = p.hand.map(c => canSeeCards
         ? `<div class="card face ${isRed(c.suit)?'suit-red':''}">${RANK_LABEL(c.rank)}<small>${c.suit}</small></div>`
@@ -308,11 +318,25 @@
     }
 
     /* ---------- 行动 ---------- */
-    const payToPot=(p,amount)=>{const pay=Math.max(0,Math.min(amount,p.chips));p.chips-=pay;p.betThisRound+=pay;state.pot+=pay;return pay;};
+    const payToPot=(p,amount)=>{
+      const pay=Math.max(0,Math.min(amount,p.chips));
+      p.chips-=pay;
+      p.betThisRound+=pay;
+      state.pot+=pay;
+      return pay;
+    };
 
     function playerSee(){ const me=state.players[4]; if(me.seen) return; me.seen=true; log('你选择：看牌（之后你的跟注=盲×2）'); render(); }
     function playerFold(){ const me=state.players[4]; me.folded=true; log('你选择：弃牌'); advanceTurn(); }
-    function playerCall(){ const me=state.players[4]; const need=needFor(me); const paid=payToPot(me,need); log(`你：跟注 ￥${paid}（盲=${state.roundBase}，你的目标=${targetFor(me)}）`); advanceTurn(); }
+    function playerCall(){
+      const me=state.players[4];
+      const need=needFor(me);
+      const paid=payToPot(me,need);
+      log(`你：跟注 ￥${paid}（盲=${state.roundBase}，你的目标=${targetFor(me)}）`);
+      render();
+      checkPotCap();
+      if (state.inHand) advanceTurn();
+    }
     function playerRaise(){
       const me=state.players[4];
       if(state.roundBase>=cfg.maxBase){ return playerCall(); }
@@ -321,11 +345,16 @@
       state.roundBase = Math.min(state.roundBase*2, cfg.maxBase);
       log(`你：先补 ￥${paidCall}，把盲提升至 ￥${state.roundBase}${me.seen?'（你看牌，目标=盲×2）':''}`);
       const needAfter = needFor(me);
-      if(needAfter>0){ const paidRaise = payToPot(me, needAfter); log(`你：为满足新目标再补 ￥${paidRaise}（新目标=${targetFor(me)}）`); }
-      advanceTurn();
+      if(needAfter>0){
+        const paidRaise = payToPot(me, needAfter);
+        log(`你：为满足新目标再补 ￥${paidRaise}（新目标=${targetFor(me)}）`);
+      }
+      render();
+      checkPotCap();
+      if (state.inHand) advanceTurn();
     }
 
-    /* ---------- 回合推进 & 闷注上限 ---------- */
+    /* ---------- 回合推进 ---------- */
     const allMatched=()=>alivePlayers().every(p=>p.betThisRound===targetFor(p));
 
     function advanceTurn(){
@@ -333,7 +362,6 @@
       if(alive.length===1) return winByFold(alive[0]);
 
       if(allMatched()){
-        if(state.roundIndex >= cfg.maxRounds){ return showdown('达到闷注上限，强制开牌'); }
         state.roundIndex += 1;
         state.roundBase = cfg.startBase;
         for(const p of alive) p.betThisRound = 0;
@@ -345,24 +373,22 @@
         const idx=(state.turnIndex+step)%n; const cand=state.players[idx];
         if(!cand.folded){ state.turnIndex=idx; break; }
       }
-      render(); maybeAutoTurn();
+      render();
+      checkPotCap();
+      if (state.inHand) maybeAutoTurn();
     }
 
     /* ---------- 机器人逻辑 ---------- */
-
-    // 改进版：先看牌，如果是强牌就标记
     function botMaybeSee(p){
       if (p.seen || p.folded) return;
 
-      // 牌好先看
       if (isStrongHandForBot(p.hand)) {
         p.seen = true;
-        p._strong = true; // 标记为强牌机器人
+        p._strong = true;
         log(`${p.name}：看牌`);
         return;
       }
 
-      // 否则按原先的概率看
       const need=needFor(p);
       const pressure = need / 20;
       const baseProb = Math.min(0.08 + 0.03*(state.roundIndex-1) + 0.10*pressure, 0.55);
@@ -373,8 +399,9 @@
     }
 
     function botStrength(p){
-      if(!p.seen){ return 200 + Math.random()*100; } // 未看牌：弱信息
-      const eva=evaluate3(p.hand); let minor=0; if(eva.scoreVec?.length) minor=eva.scoreVec.reduce((acc,v,i)=>acc+v*Math.pow(0.01,i),0);
+      if(!p.seen){ return 200 + Math.random()*100; }
+      const eva=evaluate3(p.hand); let minor=0;
+      if(eva.scoreVec?.length) minor=eva.scoreVec.reduce((acc,v,i)=>acc+v*Math.pow(0.01,i),0);
       return eva.cat*100+minor;
     }
 
@@ -383,7 +410,6 @@
       const alive = alivePlayers();
       const canShow = alive.length===2;
 
-      // 先决定要不要看牌（中间会自动贴 strong）
       botMaybeSee(p);
 
       const need = needFor(p);
@@ -391,12 +417,10 @@
       const STRONG = 520, MEDIUM = 260;
       const canRaiseBase = state.roundBase < cfg.maxBase;
 
-      // ★ 强牌机器人逻辑：基本不弃，一直补
       if (p._strong) {
         const paid = payToPot(p, need);
         if (paid > 0) log(`${p.name}：强牌跟注 ￥${paid}`);
 
-        // 有空间可以抬到上限，显得更激进
         if (canRaiseBase) {
           state.roundBase = cfg.maxBase;
           const afterNeed = needFor(p);
@@ -407,39 +431,51 @@
           log(`${p.name}：强牌抬盲至 ￥${state.roundBase}`);
         }
 
-        if (canShow && Math.random() < 0.15) {
-          return showdown(`${p.name} 发起开牌`);
+        render();
+        checkPotCap();
+        if (state.inHand) {
+          if (canShow && Math.random() < 0.15) return showdown(`${p.name} 发起开牌`);
+          advanceTurn();
         }
-
-        return advanceTurn();
+        return;
       }
 
-      // ★ 普通机器人逻辑
       if(S>=STRONG && canRaiseBase){
         payToPot(p, need);
         state.roundBase = cfg.maxBase;
         log(`${p.name}：提升盲至 ￥${state.roundBase}${p.seen?'（其目标=￥40）':'（其目标=￥20）'}`);
         const needAfter = needFor(p);
         if (needAfter > 0) { payToPot(p, needAfter); }
-        return advanceTurn();
+        render();
+        checkPotCap();
+        if (state.inHand) advanceTurn();
+        return;
       }
 
       if(S>=MEDIUM || need===0){
-        const paid=payToPot(p,need); log(`${p.name}：跟注 ￥${paid}`);
+        const paid=payToPot(p,need);
+        log(`${p.name}：跟注 ￥${paid}`);
       }else{
         if(need>0 && Math.random()<0.40){
           p.folded=true;
           log(`${p.name}：弃牌`);
-          return advanceTurn();
+          render();
+          if (state.inHand) advanceTurn();
+          return;
         }else{
-          const paid=payToPot(p,need); log(`${p.name}：跟注 ￥${paid}`);
+          const paid=payToPot(p,need);
+          log(`${p.name}：跟注 ￥${paid}`);
         }
       }
 
-      if(canShow && S>=STRONG && Math.random()<0.25){
-        return showdown(`${p.name} 发起开牌`);
+      render();
+      checkPotCap();
+      if (state.inHand) {
+        if(canShow && S>=STRONG && Math.random()<0.25){
+          return showdown(`${p.name} 发起开牌`);
+        }
+        advanceTurn();
       }
-      advanceTurn();
     }
 
     const maybeAutoTurn=()=>{ const p=state.players[state.turnIndex]; if(p && !p.isHuman) setTimeout(()=>botAct(p),560); };
@@ -466,7 +502,9 @@
         for(const w of winners) w.chips+=share;
         log(`平分底池：${winners.map(w=>w.name).join('、')} 各得 ￥${share}`);
       }
-      state.pot=0; render(); const btnNext=document.getElementById('btnNext'); if(btnNext) btnNext.style.display='inline-block';
+      state.pot=0;
+      render();  // render 会因为 state.showdown=true 显示所有剩余玩家的牌
+      const btnNext=document.getElementById('btnNext'); if(btnNext) btnNext.style.display='inline-block';
     }
     function winByFold(p){
       state.inHand=false; state.showdown=true; p.chips+=state.pot; log(`其余玩家弃牌，${p.name} 直接赢得 ￥${state.pot}`);
@@ -476,7 +514,7 @@
     /* ---------- 启动 ---------- */
     document.getElementById('ante').textContent=cfg.ante;
     document.getElementById('maxBase').textContent=cfg.maxBase;
-    document.getElementById('maxRounds').textContent=cfg.maxRounds;
+    document.getElementById('potCap').textContent=POT_CAP;
 
     setupPlayers();
     newHand();
